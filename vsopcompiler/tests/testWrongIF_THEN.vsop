@@ -1,0 +1,9 @@
+class Main {
+    main() : int32 {
+        if 2<3 then { // Erreur: condition incomplète
+            1+
+        } else {
+            0
+        }
+    }
+}

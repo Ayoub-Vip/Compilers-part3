@@ -1,0 +1,3 @@
+class T {
+    f(o : Object) : bool { isnull o }
+}

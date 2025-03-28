@@ -1,0 +1,6 @@
+class Main {
+    main() : int32 {
+        let y : int32 <- 1 + * 3 in
+            y * 2
+    }
+}

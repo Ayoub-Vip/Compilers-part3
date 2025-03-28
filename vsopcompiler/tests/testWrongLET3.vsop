@@ -1,0 +1,6 @@
+class Main {
+    main() : int32 {
+        let z : bool <- true in
+            if z then 1 else *
+    }
+}

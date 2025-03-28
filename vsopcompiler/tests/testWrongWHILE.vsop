@@ -1,0 +1,5 @@
+class Main {
+    main() : int32 {
+        while 2< do 1+2
+    }
+}

@@ -1,0 +1,6 @@
+class Main {
+    main() : int32 {
+        let x : int3 in 
+            x + 5
+    }
+}

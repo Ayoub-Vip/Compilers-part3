@@ -1,0 +1,15 @@
+class Main {
+    myVariable: InvalidType;
+    
+    main(): int32 {
+        let x:  InvalidType in 
+            x + 5
+    }
+    
+    testMethod(): NotAType {
+        42
+    }
+    anotherMethod(param: InvalidType): int32 {
+        0
+    }
+}

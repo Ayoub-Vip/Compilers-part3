@@ -1,0 +1,5 @@
+class Main {
+    main(arg1: int32, arg2: string: int32 {
+        42
+    }
+}
