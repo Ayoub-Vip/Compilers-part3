@@ -37,7 +37,9 @@ class Expr {
     public:
         virtual ~Expr() = default;
         virtual std::string toString() const = 0;
-    };
+        std::string returnType; // "int32", "bool", "string", "unit"
+
+};
 
 /**
  * Type - Represents a data type
@@ -444,6 +446,7 @@ class Program : public ASTNode {
          * @param cls The class node to add
          */
         void addClass(std::unique_ptr<ClassNode> cls);
+        std::vector<std::unique_ptr<ClassNode>>& getClasses();
         
         std::string toString() const override;
 

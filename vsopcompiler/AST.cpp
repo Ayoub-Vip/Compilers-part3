@@ -648,6 +648,15 @@ void Program::addClass(std::unique_ptr<ClassNode> cls){
 }
 
 /**
+* Get the list of classes of the program
+*/
+std::vector<std::unique_ptr<ClassNode>>& Program::getClasses(){
+   return classes;
+}
+
+
+
+/**
 * Returns a string representation of the entire program
 */
 std::string Program::toString() const {

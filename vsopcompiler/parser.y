@@ -19,6 +19,7 @@
 #include <cstring>
 #include <vector>
 #include "AST.hpp"
+#include "semantic_analyzer.cpp"
 
 // External functions and variables declarations
 void yyerror(const char *s);
@@ -532,7 +533,13 @@ int main(int argc, char **argv) {
         if (!yyparse()) {
             // Successful parsing
             if (root) {
-                std::cout << root->toString() << std::endl;
+                SemanticAnalyzer analyzer;
+                analyzer.analyze(static_cast<Program*>(root.get()));
+                
+                if (analyzer.isAccepted)
+                    std::cout << root->toString() << std::endl;
+                else
+                    return EXIT_FAILURE;
             } else {
                 std::cerr << "Erreur: AST empty !" << std::endl;
                 return EXIT_SUCCESS;
