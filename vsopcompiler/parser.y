@@ -51,7 +51,7 @@ struct FormalList {
  * @param column Column number where the error occurred
  */
 void reportSyntaxError(std::string message, unsigned int line, unsigned int column) {
-        std::cerr << fileName << ":" << yyline << ":" << yycolumn 
+        std::cerr << fileName << ":" << line << ":" << column 
                   << ": syntax error: "<< message << std::endl;
         exit(1); // Exit the program with an error code
     }
@@ -529,6 +529,7 @@ int main(int argc, char **argv) {
         }
         
         // Second pass: syntactic analysis
+        yycolumn=1;yyline=1;
         rewind(yyin);
         if (!yyparse()) {
             // Successful parsing

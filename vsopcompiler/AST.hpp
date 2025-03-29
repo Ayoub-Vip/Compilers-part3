@@ -22,6 +22,26 @@
 #include <algorithm>
 
 /**
+ * Type - Represents a data type
+ */
+class Type{
+    private:
+    std::string type_name;
+    // Valid types include: "int32", "bool", "string", "unit"
+    
+    public:
+    Type(const std::string &name);
+    
+    std::string getName() const;
+    
+    std::string toString() const;
+};
+class SymbolTable {
+    public:
+        std::vector<std::unique_ptr<std::string>> scopes;
+};
+
+/**
  * ASTNode - Base class for all nodes in the AST
  */
 class ASTNode {
@@ -34,27 +54,19 @@ class ASTNode {
  * All expressions inherit from this class 
  */
 class Expr {
-    public:
-        virtual ~Expr() = default;
-        virtual std::string toString() const = 0;
-        std::string returnType; // "int32", "bool", "string", "unit"
-
-};
-
-/**
- * Type - Represents a data type
- */
-class Type : public Expr{
-    private:
-        std::string type_name;
-        // Valid types include: "int32", "bool", "string", "unit"
+    protected:
+        Type type; // "int32", "bool", "string", "unit"
     
     public:
-        Type(const std::string &name);
-
-        std::string getName() const;
-
-        std::string toString() const override;
+        Expr(const Type& t) : type(t) {};
+        Expr() : type(Type("Undefined return type.")) {};
+        virtual ~Expr() = default;
+        virtual std::string toString() const = 0;
+        std::string getTypeName() { return type.getName(); };
+        std::string setTypeByName(std::string t) { type = Type(t); };
+        std::string setType(const Type& t) { type = t; };
+    
+    
 };
 
 /*=============================  Integers ============================== */

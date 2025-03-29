@@ -24,10 +24,10 @@ std::string ASTNode::toString() const{ return " ";}
 /**
 * IntegerLiteral - Represents an integer literal value in the source program
 */
-IntegerLiteral::IntegerLiteral(int value) : value(value) {}
+IntegerLiteral::IntegerLiteral(int value) : Expr(Type("int32")), value(value) {}
    
 /**
-* Returns the stored integer value
+* Returns the stored integer value 
 */
 int IntegerLiteral::getValue() const {
    return value;
@@ -37,7 +37,7 @@ int IntegerLiteral::getValue() const {
 * Converts the integer value to a string for AST representation
 */
 std::string IntegerLiteral::toString() const {
-   return std::to_string(value);
+   return std::to_string(value) + " : " + type.toString();
 }
 
 /*====================================================================== */
@@ -46,7 +46,7 @@ std::string IntegerLiteral::toString() const {
 /**
 * StringLiteral - Represents a string literal in the source program
 */
-StringLiteral::StringLiteral(const std::string &value) : str(value) {}
+StringLiteral::StringLiteral(const std::string &value) : Expr(Type("string")), str(value) {}
 
 /**
 * Returns the stored string value
@@ -59,7 +59,7 @@ std::string StringLiteral::getString() const {
 * Returns the string representation
 */
 std::string StringLiteral::toString() const {
-   return "\"" + str + "\"";
+   return "\"" + str + "\""  + " : " + type.toString();
 }
 /*==================================================================== */
 
@@ -67,13 +67,16 @@ std::string StringLiteral::toString() const {
 /**
 * BooleanLiteral - Represents a boolean literal in the source program
 */
-BooleanLiteral::BooleanLiteral(bool value) : value(value) {}
+BooleanLiteral::BooleanLiteral(bool value) : Expr(Type("bool")), value(value) {}
 
 /**
 * Returns the string representation of the boolean value
 */
 std::string BooleanLiteral::toString() const {
-   return value ? "true" : "false";
+   if(value)
+      return "true : " + type.toString();
+   else
+      return "false : " + type.toString();
 }
 
 /**
@@ -89,7 +92,7 @@ bool BooleanLiteral::getValue() const {
 * BinaryOperation - Represents a binary operation between two expressions
 */
 BinaryOperation::BinaryOperation(const std::string &op, std::unique_ptr<Expr> left, std::unique_ptr<Expr> right)
-   : op(op), left(std::move(left)), right(std::move(right)) {}
+   : Expr(Type("bool")), op(op), left(std::move(left)), right(std::move(right)) {}
 
 /**
 * Returns the operation symbol
