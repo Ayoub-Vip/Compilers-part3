@@ -35,3 +35,4 @@ parser.cpp
 lexer.cpp
 parser.hpp
 vsopc
+*.json

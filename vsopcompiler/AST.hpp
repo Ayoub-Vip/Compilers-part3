@@ -63,8 +63,8 @@ class Expr {
         virtual ~Expr() = default;
         virtual std::string toString() const = 0;
         std::string getTypeName() { return type.getName(); };
-        std::string setTypeByName(std::string t) { type = Type(t); };
-        std::string setType(const Type& t) { type = t; };
+        void setTypeByName(std::string t) { type = Type(t); };
+        void setType(const Type& t) { type = t; };
     
     
 };
@@ -398,6 +398,9 @@ class MethodNode : public ASTNode {
             : name(std::move(n)), returnType(std::move(rt)), bloc(std::move(b)) {}
             
         std::string toString() const override;
+        std::string getName() { return name; };
+        Type getReturnType() { return returnType; };
+        std::vector<std::unique_ptr<Formal>>& getFormals() { return formals; };
 };
 /*====================================================================== */
 

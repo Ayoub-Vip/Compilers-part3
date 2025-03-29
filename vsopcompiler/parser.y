@@ -535,7 +535,7 @@ int main(int argc, char **argv) {
             // Successful parsing
             if (root) {
                 SemanticAnalyzer analyzer;
-                analyzer.analyze(static_cast<Program*>(root.get()));
+                // analyzer.analyze(static_cast<Program*>(root.get()));
                 
                 if (analyzer.isAccepted)
                     std::cout << root->toString() << std::endl;
