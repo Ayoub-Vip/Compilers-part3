@@ -32,9 +32,10 @@ class Type{
     public:
     Type(const std::string &name);
     
-    std::string getName() const;
+    std::string getName() { return type_name; };
     
     std::string toString() const;
+    std::string toString2() { return toString(); };
 };
 class SymbolTable {
     public:
@@ -47,6 +48,7 @@ class SymbolTable {
 class ASTNode {
     public:
         virtual std::string toString() const = 0; // Method to be overridden
+        virtual std::string toString2() const = 0; // Method to be overridden
 };
 
 /**
@@ -62,6 +64,7 @@ class Expr {
         Expr() : type(Type("Undefined return type.")) {};
         virtual ~Expr() = default;
         virtual std::string toString() const = 0;
+        virtual std::string toString2() const = 0;
         std::string getTypeName() { return type.getName(); };
         void setTypeByName(std::string t) { type = Type(t); };
         void setType(const Type& t) { type = t; };
@@ -78,6 +81,7 @@ class IntegerLiteral : public Expr {
         IntegerLiteral(int value);
         int getValue() const;
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     
     private:
         int value;
@@ -93,6 +97,7 @@ class StringLiteral : public Expr {
         StringLiteral(const std::string &value);
         std::string getString() const;
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     private:
         std::string str;
 };
@@ -107,6 +112,7 @@ class BooleanLiteral : public Expr {
         BooleanLiteral(bool value);
         bool getValue() const;
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     private:
         bool value;
 };
@@ -123,6 +129,7 @@ class BinaryOperation : public Expr {
         Expr* getLeft() const;
         Expr* getRight() const;
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     private:
         std::string op;
         std::unique_ptr<Expr> left;
@@ -138,6 +145,7 @@ class Conditional : public Expr {
     public:
         Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr, std::unique_ptr<Expr> else_expr = nullptr);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 
         Expr* getCond_expr() const;
         Expr* getThen_expr() const;
@@ -158,6 +166,7 @@ class WhileLoop : public Expr {
     public:
         WhileLoop(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> body_expr);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 
         Expr* getCond_expr() const;
         Expr* getBody_expr() const;
@@ -177,6 +186,7 @@ class Block : public Expr {
         Block() = default;
         Block(std::vector<std::unique_ptr<Expr>> exprs);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         void addExpr(std::unique_ptr<Expr> expr);
         std::vector<std::unique_ptr<Expr>>& getExprs();
 
@@ -201,6 +211,7 @@ public:
     Type getType() const;
     
     std::string toString() const override;
+    std::string toString2() const override { return toString(); };
 };
 /*====================================================================== */
 
@@ -212,6 +223,7 @@ class Let : public Expr {
     public:
         Let(std::string n, Type t, std::unique_ptr<Expr> expr = nullptr, std::unique_ptr<Expr> scope = nullptr);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getName() const;
         Type getType() const;
         Expr* getInitExpr() const;
@@ -235,6 +247,7 @@ class Assign : public Expr{
         std::string getName();
         Expr* getExpr() const;
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 
     private:
         std::string name;
@@ -250,6 +263,7 @@ class UnOp : public Expr {
     public:
         UnOp(std::string op, std::unique_ptr<Expr> expr);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getOp();
         Expr* getExpr();
 
@@ -267,6 +281,7 @@ class Call : public Expr {
     public:
         Call(std::string n, std::vector<std::unique_ptr<Expr>> args, std::unique_ptr<Expr> exprobject_ident);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getMethodName() const;
         std::vector<std::unique_ptr<Expr>>& getArgs();
 
@@ -290,7 +305,9 @@ class FieldNode : public ASTNode {
     public:
         FieldNode(std::string n, Type t, std::unique_ptr<Expr> expr = nullptr);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getName() const;
+        std::string getTypeName() {return type.getName(); };
         Type getType() const;
 };
 /*====================================================================== */
@@ -303,6 +320,7 @@ class Formula : public Expr {
     public:
         Formula(std::unique_ptr<Type> type, std::string name);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 
         Type* getType() const;
         std::string getName() const;
@@ -321,6 +339,7 @@ class ObjectIdentifier : public Expr {
     public:
         ObjectIdentifier(std::string n);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getName() const;
 
     private:
@@ -337,6 +356,7 @@ class Self : public Expr {
         Self() = default;
         Self(std::string n="self");
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     private:
         std::string name_self;
 };
@@ -350,6 +370,7 @@ class New : public Expr {
     public:
         New(std::string n);
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
     private:
         std::string name;
 };
@@ -363,6 +384,7 @@ class Parenthesis : public Expr {
     public:
         Parenthesis();
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 };
 /*====================================================================== */
 
@@ -398,6 +420,7 @@ class MethodNode : public ASTNode {
             : name(std::move(n)), returnType(std::move(rt)), bloc(std::move(b)) {}
             
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
         std::string getName() { return name; };
         Type getReturnType() { return returnType; };
         std::vector<std::unique_ptr<Formal>>& getFormals() { return formals; };
@@ -446,6 +469,7 @@ class ClassNode : public ASTNode{
         std::vector<std::unique_ptr<MethodNode>>& getMethods();
 
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 };
 
 /* ============================ Program ================================ */
@@ -464,6 +488,7 @@ class Program : public ASTNode {
         std::vector<std::unique_ptr<ClassNode>>& getClasses();
         
         std::string toString() const override;
+        std::string toString2() const override { return toString(); };
 
     private :
         std::vector<std::unique_ptr<ClassNode>> classes;

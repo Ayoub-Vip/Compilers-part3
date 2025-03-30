@@ -513,7 +513,7 @@ int main(int argc, char **argv) {
     }
 
     // Process based on the mode argument (-p or -l)
-    if(strcmp(argv[1], "-p") == 0) {
+    if(strcmp(argv[1], "-c") == 0) {
         // Parse mode
         lexer_debug_mode = false;
         int token;
@@ -535,10 +535,10 @@ int main(int argc, char **argv) {
             // Successful parsing
             if (root) {
                 SemanticAnalyzer analyzer;
-                // analyzer.analyze(static_cast<Program*>(root.get()));
+                analyzer.analyze(static_cast<Program*>(root.get()));
                 
                 if (analyzer.isAccepted)
-                    std::cout << root->toString() << std::endl;
+                    std::cout << root->toString2() << std::endl;
                 else
                     return EXIT_FAILURE;
             } else {
@@ -554,7 +554,38 @@ int main(int argc, char **argv) {
         lexer_debug_mode = true;
         int token;
         while ((token = yylex()) != 0) { } // don t need here to print anything, the printing is done on lexing ;) 
-    } else {
+    }
+    else if(strcmp(argv[1], "-p") == 0) {
+        // Parse mode
+        lexer_debug_mode = false;
+        int token;
+        
+        // First pass: we need to be sure that lexing is done withot errors
+        while ((token = yylex()) != 0) {
+            if (token == ERROR) {
+                std::cerr << fileName << ":" << yylval.error_location.line_error << ":" 
+                          << yylval.error_location.column_error << ": lexical error : " 
+                          << error_message <<  std::endl;
+                exit(1);
+            }
+        }
+        
+        // Second pass: syntactic analysis
+        rewind(yyin);
+        if (!yyparse()) {
+            // Successful parsing
+            if (root) {
+                std::cout << root->toString2() << std::endl;
+            } else {
+                std::cerr << "Erreur: AST empty !" << std::endl;
+                return EXIT_SUCCESS;
+            }
+        } else {
+            std::cerr << "Parsing Error !" << std::endl;
+            return EXIT_SUCCESS;
+        }
+    }
+     else {
         std::cerr << "Strange Option: " << argv[1] << "\n Usage : " << argv[0] 
                   << " -p|-l <source_code_file>\n";
     }
