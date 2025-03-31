@@ -77,7 +77,7 @@ class IntegerLiteral : public Expr {
         IntegerLiteral(int value);
         int getValue() const;
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
     
     private:
         int value;
@@ -93,7 +93,7 @@ class StringLiteral : public Expr {
         StringLiteral(const std::string &value);
         std::string getString() const;
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
     private:
         std::string str;
 };
@@ -108,7 +108,7 @@ class BooleanLiteral : public Expr {
         BooleanLiteral(bool value);
         bool getValue() const;
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
     private:
         bool value;
 };
@@ -125,7 +125,7 @@ class BinaryOperation : public Expr {
         Expr* getLeft() const;
         Expr* getRight() const;
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
     private:
         std::string op;
         std::unique_ptr<Expr> left;
@@ -207,7 +207,7 @@ public:
     Type getType() const;
     
     std::string toString() const override;
-    std::string toString2() const override { return toString(); };
+    std::string toString2() const override;
 };
 /*====================================================================== */
 

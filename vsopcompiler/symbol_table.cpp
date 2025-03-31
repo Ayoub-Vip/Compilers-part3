@@ -37,14 +37,12 @@ public:
     }
 
     std::string lookup(const std::string& name) {
-        auto actual_scp = scopes.top();
-        while (!actual_scp.empty()) {
-            
-            // if (it->count(name)) {
-            //     return it->at(name);
-            // }
-
+        const auto& actual_scp = scopes.top();
+        
+        auto item = actual_scp.find(name);
+        if ( item != actual_scp.end()) {
+            return item->second;
         }
-        return ""; // Not found
+        return ""; // not found
     }
 };

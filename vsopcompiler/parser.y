@@ -571,6 +571,7 @@ int main(int argc, char **argv) {
         }
         
         // Second pass: syntactic analysis
+        yycolumn = 1; yyline = 1;
         rewind(yyin);
         if (!yyparse()) {
             // Successful parsing

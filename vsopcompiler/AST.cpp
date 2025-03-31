@@ -36,7 +36,11 @@ int IntegerLiteral::getValue() const {
 /**
 * Converts the integer value to a string for AST representation
 */
+
 std::string IntegerLiteral::toString() const {
+   return std::to_string(value);
+}
+std::string IntegerLiteral::toString2() const {
    return std::to_string(value) + " : " + type.toString();
 }
 
@@ -59,6 +63,8 @@ std::string StringLiteral::getString() const {
 * Returns the string representation
 */
 std::string StringLiteral::toString() const {
+   return "\"" + str + "\"";
+}std::string StringLiteral::toString2() const {
    return "\"" + str + "\""  + " : " + type.toString();
 }
 /*==================================================================== */
@@ -73,6 +79,9 @@ BooleanLiteral::BooleanLiteral(bool value) : Expr(Type("bool")), value(value) {}
 * Returns the string representation of the boolean value
 */
 std::string BooleanLiteral::toString() const {
+   return value ? "true" : "false";
+}
+std::string BooleanLiteral::toString2() const {
    if(value)
       return "true : " + type.toString();
    else
@@ -120,6 +129,10 @@ Expr* BinaryOperation::getRight() const {
 */
 std::string BinaryOperation::toString() const {
    return "BinOp(" + op +", " + left->toString() + ", " + right->toString() + ")";
+}
+
+std::string BinaryOperation::toString2() const {
+   return "BinOp(" + op +", " + left->toString2() + ", " + right->toString2() + ")";
 }
 /*====================================================================== */
 
@@ -212,6 +225,9 @@ Type Formal::getType() const { return type; }
 * Returns a string representation of the formal parameter
 */
 std::string Formal::toString() const {
+   return name;
+}
+std::string Formal::toString2() const {
    return name + " : " + type.toString() ;
 }
 /*====================================================================== */

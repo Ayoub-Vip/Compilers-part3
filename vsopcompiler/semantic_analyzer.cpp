@@ -151,7 +151,6 @@ private:
             if (cls->parent != "Object")
                 compareMethodsSignature(cls, classMap[cls->parent]);
 
-            //TODO check scopes? where?
             checkMethod(method.get());
 
         }
@@ -225,6 +224,7 @@ private:
                 std::cerr << "semantic error : the method " << method->toString() << "has several formals with the same name'" << fname <<"'" << std::endl;
             }
         }
+        
         //TODO check expressions Scope and types
 
         symb_tab.exitScope();
