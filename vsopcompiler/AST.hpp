@@ -369,7 +369,7 @@ class New : public Expr {
         New(std::string n);
         std::string toString() const override;
         std::string toString2() const override;
-        std::string getClassName() const  {return getTypeName();};
+        std::string getClassName() const;
 
     private:
         std::string name;

@@ -23,13 +23,13 @@ public:
         // Perform semantic checks on the entire program
         for (const auto& cls : program->getClasses()) {
             
-            class_in_question = cls.get();
             checkClass((ClassNode*) cls.get());
         }
 
     }
     bool isAccepted = false;
     ClassNode* class_in_question = nullptr;
+    MethodNode* method_in_question = nullptr;
 private:
     SymbolTable symb_tab = SymbolTable();
     std::unordered_map<std::string, ClassNode*> classMap; ///TODO to be curfull here
@@ -125,6 +125,9 @@ private:
     
     // Check class-level semantics: fields and method cannot be redeclared twice ... Done
     void checkClass(ClassNode* cls) {
+
+        class_in_question = cls; // 
+
         symb_tab.enterScope();
         
         std::cout << "Checking class: " << cls->name << std::endl;
@@ -206,8 +209,8 @@ private:
 
     // Check method-level semantics (e.g., parameter types, return type)
     void checkMethod(MethodNode* method) {
-        std::cout << "Checking method: " << method->toString() << std::endl;
-        
+        std::cout << "Checking method: " << method->getName() << std::endl;
+        method_in_question = method;
         symb_tab.enterScope();
         
         // no several formal arguments with the same name ................. Done
@@ -215,14 +218,16 @@ private:
         for (auto& formal : method->getFormals()) {
             std::string fname = formal->getName();
             std::string ftype = formal->getTypeName();
-            if(visitedFromalName.find(fname) != visitedFromalName.end()){
+            // std::cerr << "semantic error : the method " << method->getName() << " several fname'" << fname <<"'" << std::endl;
+
+            if(visitedFromalName.count(fname) == 0){
                 
                 visitedFromalName[fname] = true;
                 // Declare forals in the current scope
                 symb_tab.declare(fname, ftype);  //TODO what if a formal is already in the previous (class field) scope with  different type??
             }
             else {
-                std::cerr << "semantic error : the method " << method->toString() << "has several formals with the same name'" << fname <<"'" << std::endl;
+                std::cerr << "semantic error : the method " << method->getName() << " has several formals with the same name'" << fname <<"'" << std::endl;
             }
         }
         
@@ -269,22 +274,27 @@ private:
             checkExpression(binOp->getLeft());
             checkExpression(binOp->getRight());
             std::string op = binOp->getOperator();
+            std::string left_type = binOp->getLeft()->getTypeName();
+            std::string right_type = binOp->getRight()->getTypeName();
 
             if (op == "=" or op == "<" or op == "<=") {
-                if (binOp->getLeft()->getTypeName() != "int32" || binOp->getRight()->getTypeName() != "int32") {
-                    std::cerr << "Type error: Binary operation requires int32 operands." << std::endl;
+                if (left_type != "int32" || right_type != "int32") {
+                    std::cerr << "Type error: Binary operation requires int32 operands." 
+                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
                 }
                 binOp->setTypeByName("bool");
             }
             else if (op != "and"){
-                if (binOp->getLeft()->getTypeName() != "int32" || binOp->getRight()->getTypeName() != "int32") {
-                    std::cerr << "Type error: Binary operation requires int32 operands." << std::endl;
+                if (left_type != "int32" || right_type != "int32") {
+                    std::cerr << "Type error: Binary operation requires int32 operands." 
+                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
                 }
                 binOp->setTypeByName("int32");
             }
             else if(op == "and"){
-                if (binOp->getLeft()->getTypeName() != "bool" || binOp->getRight()->getTypeName() != "bool") {
-                    std::cerr << "Type error: Binary operation requires bool operands." << std::endl;
+                if (left_type != "bool" || right_type != "bool") {
+                    std::cerr << "Type error: Binary operation requires bool operands." 
+                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
                 }
                 binOp->setTypeByName("bool");
             }
@@ -475,19 +485,24 @@ private:
         
         // Verify if the object identifier is declared and set its type
         else if (auto objIden = dynamic_cast<ObjectIdentifier*>(expr)) {
-            
+            std::string objType = symb_tab.lookup(objIden->getName());
+            if(!objIden)
+                std::cout << "semantic error : the object '" << objIden->toString()<<"' is not defined in the scope." <<std::endl;
+            else
+                objIden->setTypeByName(objType);
         }
         //TODO
         else if (auto self = dynamic_cast<Self*>(expr)) {
-            self->setTypeByName("self");
+            self->setTypeByName(method_in_question->getName());
         }
         // Verify if the class being instantiated exists ..................... Done
         else if (auto newExpr = dynamic_cast<New*>(expr)) {
             // Verify if the class being instantiated exists
+            std::cout << "newExpr->getClassName() : " << newExpr->toString() <<std::endl;
             if (classMap.count(newExpr->getClassName()))
                 newExpr->setTypeByName(newExpr->getClassName());
             else
-                std::cerr << "semantic error : the class '" << newExpr->getClassName() << "' does not exists to be instanciated." << std::endl;
+                std::cerr << "semantic error : the class '" << newExpr->getTypeName() << "' does not exists to be instanciated." << std::endl;
         }
         //TODO this bellow is not clear
         else if (auto parenthesis = dynamic_cast<Parenthesis*>(expr)) {
