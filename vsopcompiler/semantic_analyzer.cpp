@@ -18,11 +18,12 @@ public:
 
         checkClassInhiretence(program->getClasses());
         
+        std::cout << "Checking class Inhiretence Finished ...... Done " << std::endl;
 
         // Perform semantic checks on the entire program
-        for (auto& cls : program->getClasses()) {
-            checkClass(cls.get());
-            // cls.get()->name; //check Class inhireteanc / iscyclic ?
+        for (const auto& cls : program->getClasses()) {
+
+            checkClass((ClassNode*) cls.get());
         }
 
     }
@@ -37,7 +38,7 @@ private:
         /***
          * check wether all the extended (parent) class exists ........... Done
          *  check if there no is a cyclic definition of classes .......... Done
-         *  class initializer do not contain scope of fields themselves ......... //TODO
+         *  //TODO class initializer do not contain scope of fields themselves.
          *  no class is defined more than one time ....................... Done
          *  no class is named Object ..................................... Done
          *  report error:1:1 if no class Main, or Main has no main method. Done
@@ -91,8 +92,8 @@ private:
 
         // Check for undefined parent classes
         for (auto& cls : classes) {
-            if (!cls->parent.empty() && classMap.find(cls->parent) == classMap.end()) {
-                std::cerr << "Error: Parent class " << cls->parent << " of class " << cls->name << " is not defined." << std::endl;
+            if (!cls->parent.empty() && cls->parent != "Object" && classMap.find(cls->parent) == classMap.end()) {
+                std::cerr << "Error: Parent class " << cls->parent << " of class " << cls->name << " is not declared." << std::endl;
             }
         }
 
@@ -124,29 +125,40 @@ private:
     // Check class-level semantics : fields and method can not be declared two times.
     void checkClass(ClassNode* cls) {
         symb_tab.enterScope();
+        
         std::cout << "Checking class: " << cls->name << std::endl;
 
+        ///// check fields ................................................ Done
         for (auto& field : cls->getFields()) {
-            // ensure 'new' Expr has an exiting class declared. )
-            // if extending a parent class -> cannot redfine its fields (with different type..).
+            
+            // check cannot redfine its parent fields(no different type) .. Done
+            if (cls->parent != "Object") {
+                const auto& pcls = classMap[cls->parent];
+                for (auto& pfield : pcls->getFields()){
+                    if (pfield->getName() == field->getName() && pfield->getTypeName() != field->getTypeName())
+                        std::cerr << "semantic error : the inhireted field '" << pfield->getName() << "' of type '" << pfield->getTypeName() << "' cannot be redefined with different type '" << field->getTypeName() <<"' in the child class" << std::endl;                    
+                }
+            }
+
             symb_tab.declare(field->getName(), field->getTypeName());
 
+            // check if the type  exists   ................................ Done
             checkField(field.get());
         }
 
         for (auto& method : cls->getMethods()) {
-            // if extending a parent class, must have the same methods args and return type (another type..).
+            //  must have parent class same methods args and return ....... Done
             if (cls->parent != "Object")
                 compareMethodsSignature(cls, classMap[cls->parent]);
 
-            ///////// check scopes? where? //////////////
+            //TODO check scopes? where?
             checkMethod(method.get());
 
         }
         symb_tab.enterScope();
     }
 
-    // Check field-level semantics (e.g., type validity)
+    // Check field-level semantics (e.g., type validity) .................. Done
     void checkField(FieldNode* field) {
         // check if the type is existing, ................................. Done
         // ex: { field : classA}, classA must be declared
@@ -162,7 +174,7 @@ private:
             std::cerr << "semantic error : class type" << ftype << "does not exist" << std::endl;
     }
     
-    // if extending a parent class, must have the same methods args and return type (another type..).
+    // if extending a parent class, must have the same methods args and return type (another type..)..... Done
     void compareMethodsSignature(ClassNode* child, ClassNode* parent){
         for (auto& pmethod : parent->getMethods()) {
             for (auto& cmethod : child->getMethods()) {
@@ -194,12 +206,11 @@ private:
 
     // Check method-level semantics (e.g., parameter types, return type)
     void checkMethod(MethodNode* method) {
-        // check expressions Scope and types
-
-        symb_tab.enterScope();
-
-        // no several formal arguments with the same name 
         std::cout << "Checking method: " << method->toString() << std::endl;
+        
+        symb_tab.enterScope();
+        
+        // no several formal arguments with the same name ................. Done
         std::unordered_map<std::string, bool> visitedFromalName;
         for (auto& formal : method->getFormals()) {
             std::string fname = formal->getName();
@@ -207,14 +218,14 @@ private:
             if(visitedFromalName.find(fname) != visitedFromalName.end()){
                 
                 visitedFromalName[fname] = true;
-
-                symb_tab.declare(fname, ftype);  //TODO what if a formal is already in the previous scope with  different type??
+                // Declare forals in the current scope
+                symb_tab.declare(fname, ftype);  //TODO what if a formal is already in the previous (class field) scope with  different type??
             }
             else {
                 std::cerr << "semantic error : the method " << method->toString() << "has several formals with the same name'" << fname <<"'" << std::endl;
-
             }
         }
+        //TODO check expressions Scope and types
 
         symb_tab.exitScope();
 
@@ -267,14 +278,21 @@ private:
             }
             whileLoop->setTypeByName("unit");
         } else if (auto block = dynamic_cast<Block*>(expr)) {
+            
+            symb_tab.enterScope();
+
             for (auto& innerExpr : block->getExprs()) {
                 checkExpression(innerExpr.get());
+                
             }
             if (!block->getExprs().empty()) {
                 block->setTypeByName(block->getExprs().back()->getTypeName());
             } else {
                 block->setTypeByName("unit");
             }
+            
+            symb_tab.exitScope();
+        
         } else if (auto let = dynamic_cast<Let*>(expr)) {
             if (let->getInitExpr()) {
                 checkExpression(let->getInitExpr());

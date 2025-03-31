@@ -1,10 +1,14 @@
 class Factory {
+    field : int32;
+
     makeDoubleBigInt(i : int32) : BigInt {
         (new BigInt).init(i * 2)
     }
 }
-class BigInt {
+class BigInt extends Factory{
     i : int32;
+    field : bool;
+    //field2 : noClassExits;
 
     init(i_ : int32) : BigInt {
         i <- i_;
