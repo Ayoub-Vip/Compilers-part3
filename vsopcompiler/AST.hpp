@@ -26,20 +26,16 @@
  */
 class Type{
     private:
-    std::string type_name;
-    // Valid types include: "int32", "bool", "string", "unit"
+        std::string type_name;
+        // Valid types include: "int32", "bool", "string", "unit"
     
     public:
-    Type(const std::string &name);
-    
-    std::string getName() { return type_name; };
-    
-    std::string toString() const;
-    std::string toString2() { return toString(); };
-};
-class SymbolTable {
-    public:
-        std::vector<std::unique_ptr<std::string>> scopes;
+        Type(const std::string &name);
+        
+        std::string getName() const;
+        
+        std::string toString() const;
+        std::string toString2() { return toString(); };
 };
 
 /**

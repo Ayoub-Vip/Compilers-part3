@@ -7,14 +7,22 @@ class SymbolTable {
     // stack table:  (name -> hash, type)
     std::stack<std::unordered_map<std::string, std::string>> scopes;
 
-
 public:
-    void enterScope() {
-        auto prev_scope = scopes.top(); // copy symbole table
-        scopes.push(prev_scope);
+    void enterScope()
+    {
+        if (!scopes.empty()){
+            auto prev_scope = scopes.top(); // Safe access to the top element
+            std::cout << "enterScope()" << std::endl;
+            scopes.push(prev_scope);
+        }
+        else {
+            std::cout << "Stack is empty; cannot copy the top element." << std::endl;
+            scopes.push(std::unordered_map<std::string, std::string>()); // Push an empty scope
+        }
     }
 
     void exitScope() {
+        std::cout << "exitScope() "  << std::endl;
         if (!scopes.empty()) {
             scopes.pop();
         }
