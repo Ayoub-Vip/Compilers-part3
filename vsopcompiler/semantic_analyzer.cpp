@@ -22,13 +22,14 @@ public:
 
         // Perform semantic checks on the entire program
         for (const auto& cls : program->getClasses()) {
-
+            
+            class_in_question = cls.get();
             checkClass((ClassNode*) cls.get());
         }
 
     }
     bool isAccepted = false;
-
+    ClassNode* class_in_question = nullptr;
 private:
     SymbolTable symb_tab = SymbolTable();
     std::unordered_map<std::string, ClassNode*> classMap; ///TODO to be curfull here
@@ -323,25 +324,39 @@ private:
         }
         // call method, verify recursively existence and signature ......... Done
         else if (auto call = dynamic_cast<Call*>(expr)) {
+
             // verify if the called method exists in the class hierarchy .... Done
-            ClassNode* currentClass = classMap[call->getClassName()];
+            ClassNode* currentClass = nullptr;
             MethodNode* method = nullptr;
 
-            while (currentClass) {
-                for (auto &m : currentClass->getMethods()) {
-                    if (m->getName() == call->getMethodName()) {
-                        method = m.get();
+            //calling a method inside the same class ==> self, omit checking class existance
+            if (call->getClassName() == "self"){ //NOTE class_in_question is updated in 'checkClass'
+                for (const auto& mt : class_in_question->getMethods()) {
+                    if (mt->getName() == call->getMethodName()) {
+                        method = mt.get();
                         break;
                     }
                 }
-                if (method)
-                    break;
-                if (currentClass->parent.empty())
-                    break;
-                if(currentClass->parent == "Object")
-                    break; //TODO problem is we use Object methods like print()...
+            } else {
+                checkExpression(call->getExprObjectIdentifier());
 
-                currentClass = classMap[currentClass->parent];
+                currentClass = classMap[call->getClassName()]; // getClassName only possible if ExprObjIden is evaluated
+                while (currentClass) {
+                    for (auto &m : currentClass->getMethods()) {
+                        if (m->getName() == call->getMethodName()) {
+                            method = m.get();
+                            break;
+                        }
+                    }
+                    if (method)
+                        break;
+                    if (currentClass->parent.empty())
+                        break;
+                    if(currentClass->parent == "Object")
+                        break; //TODO problem is we use Object methods like print()...
+                    
+                    currentClass = classMap[currentClass->parent];
+                }
             }
 
             if (!method) {
@@ -430,13 +445,20 @@ private:
         
         //TODO see vsop manual for let .. in
         else if (auto let = dynamic_cast<Let*>(expr)) {
+            checkExpression(let->getScopeExpr());
+            
             if (let->getInitExpr()) {
                 checkExpression(let->getInitExpr());
+                if (let->getType().getName() != let->getInitExpr()->getTypeName()) {
+                std::cerr << "semantic error: the type of let '"<< let->getType().getName() << "' must be the same as its Initializer, found :" << let->getInitExpr()->getTypeName() << std::endl;
             }
-            if (let->getScopeExpr()) {
-                checkExpression(let->getScopeExpr());
             }
-            let->setTypeByName(let->getScopeExpr()->getTypeName());
+            // does must body scope return the same type as the type of Let?? 
+            // if (let->getType().getName() != let->getScopeExpr()->getTypeName()) {
+            //     std::cerr << "semantic error: the type of let '"<< let->getType().getName() << "' must be the same as its scope body, found :" << let->getInitExpr()->getTypeName() << std::endl;
+            // }
+
+            let->setTypeByName(let->getType().getName());
         }
 
         // TODO 
