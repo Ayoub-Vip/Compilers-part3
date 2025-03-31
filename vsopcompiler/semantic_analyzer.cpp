@@ -287,6 +287,9 @@ private:
                 }
                 binOp->setTypeByName("bool");
             }
+            else{
+                std::cerr << "Type error: Binary operation, unknown operand '"<< op << "'"<< std::endl;
+            }
         }
         // same branches type and bool condition ........................... Done 
         else if (auto cond = dynamic_cast<Conditional*>(expr)) {
@@ -456,22 +459,17 @@ private:
         else if (auto self = dynamic_cast<Self*>(expr)) {
             self->setTypeByName("self");
         }
-        //TODO
+        // Verify if the class being instantiated exists ..................... Done
         else if (auto newExpr = dynamic_cast<New*>(expr)) {
             // Verify if the class being instantiated exists
             if (classMap.count(newExpr->getClassName()))
                 newExpr->setTypeByName(newExpr->getClassName());
             else
                 std::cerr << "semantic error : the class '" << newExpr->getClassName() << "' does not exists to be instanciated." << std::endl;
-
         }
-        //TODO
+        //TODO this bellow is not clear
         else if (auto parenthesis = dynamic_cast<Parenthesis*>(expr)) {
             parenthesis->setTypeByName("unit");
-        }
-        //TODO
-        else if (auto formula = dynamic_cast<Formula*>(expr)) {
-            // Verify the formula's type and name
         }
         //TODO
         else {

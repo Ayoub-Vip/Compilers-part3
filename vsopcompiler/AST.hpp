@@ -314,19 +314,19 @@ class FieldNode : public ASTNode {
 /**
  * Formula - Represents a formula expression
  */
-class Formula : public Expr {
-    public:
-        Formula(std::unique_ptr<Type> type, std::string name);
-        std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+// class Formula : public Expr {
+//     public:
+//         Formula(std::unique_ptr<Type> type, std::string name);
+//         std::string toString() const override;
+//         std::string toString2() const override { return toString(); };
 
-        Type* getType() const;
-        std::string getName() const;
+//         Type* getType() const;
+//         std::string getName() const;
 
-    private:
-        std::unique_ptr<Type> type;
-        std::string name;
-};
+//     private:
+//         std::unique_ptr<Type> type;
+//         std::string name;
+// };
 /*====================================================================== */
 
 /* ======================== ObjectIdentifier ========================== */
