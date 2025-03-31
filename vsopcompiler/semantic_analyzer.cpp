@@ -122,7 +122,7 @@ private:
         }
     }
     
-    // Check class-level semantics : fields and method can not be declared two times.
+    // Check class-level semantics: fields and method cannot be redeclared twice ... Done
     void checkClass(ClassNode* cls) {
         symb_tab.enterScope();
         
@@ -226,58 +226,188 @@ private:
         }
         
         //TODO check expressions Scope and types
+        checkExpression(method->getBlock());
 
         symb_tab.exitScope();
 
     }
+    // Helper function to get the ancestry chain of a class
+    std::vector<std::string> getAncestry(const std::string& className) {
+        std::vector<std::string> ancestry;
+        std::string currentClass = className;
+        while (!currentClass.empty() && currentClass != "Object" && classMap.count(currentClass)) {
+            ancestry.push_back(currentClass);
+            currentClass = classMap[currentClass]->parent;
+        }
+        return ancestry;
+    }
 
+    // this function getMostCommonAncestor, use classMap to access the parent, the function returns the first common ancestor class before 'Object'
+    std::string getMostCommonAncestor(std::string classA, std::string classB) {
+
+        // Get the ancestry chains for both classes
+        std::vector<std::string> ancestryA = getAncestry(classA);
+        std::vector<std::string> ancestryB = getAncestry(classB);
+
+        // Find the first common ancestor by comparing the chains
+        std::string commonAncestor = "Object";
+        auto itA = ancestryA.rbegin();
+        auto itB = ancestryB.rbegin();
+
+        while (itA != ancestryA.rend() && itB != ancestryB.rend() && *itA == *itB) {
+            commonAncestor = *itA;
+            ++itA;
+            ++itB;
+        }
+
+        return commonAncestor;
+    }
     void checkExpression(Expr* expr) {
+        // check operands are of the same type given operator .............. Done
         if (auto binOp = dynamic_cast<BinaryOperation*>(expr)) {
             checkExpression(binOp->getLeft());
             checkExpression(binOp->getRight());
-    
-            if (binOp->getLeft()->getTypeName() != "int32" || binOp->getRight()->getTypeName() != "int32") {
-                std::cerr << "Type error: Binary operation requires int32 operands." << std::endl;
+            std::string op = binOp->getOperator();
+
+            if (op == "=" or op == "<" or op == "<=") {
+                if (binOp->getLeft()->getTypeName() != "int32" || binOp->getRight()->getTypeName() != "int32") {
+                    std::cerr << "Type error: Binary operation requires int32 operands." << std::endl;
+                }
+                binOp->setTypeByName("bool");
             }
-    
-            binOp->setTypeByName("int32"); // Assume result is int32
-        } else if (auto cond = dynamic_cast<Conditional*>(expr)) {
+            else if (op != "and"){
+                if (binOp->getLeft()->getTypeName() != "int32" || binOp->getRight()->getTypeName() != "int32") {
+                    std::cerr << "Type error: Binary operation requires int32 operands." << std::endl;
+                }
+                binOp->setTypeByName("int32");
+            }
+            else if(op == "and"){
+                if (binOp->getLeft()->getTypeName() != "bool" || binOp->getRight()->getTypeName() != "bool") {
+                    std::cerr << "Type error: Binary operation requires bool operands." << std::endl;
+                }
+                binOp->setTypeByName("bool");
+            }
+        }
+        // same branches type and bool condition ........................... Done 
+        else if (auto cond = dynamic_cast<Conditional*>(expr)) {
             checkExpression(cond->getCond_expr());
             checkExpression(cond->getThen_expr());
-            if (cond->getElse_expr()) {
-                checkExpression(cond->getElse_expr());
-            }
-    
+            
+            // check condition is Bool type  .............................. Done
             if (cond->getCond_expr()->getTypeName() != "bool") {
                 std::cerr << "Type error: Condition must be of type bool." << std::endl;
             }
-    
-            // Assume the type of the conditional is the type of the "then" branch
-            cond->setTypeByName(cond->getThen_expr()->getTypeName());
 
-            // branchs of: {if (condition) then 42 else false}  should return the same type not int32 or bool
-        } else if (auto call = dynamic_cast<Call*>(expr)) {
-            // Verify if called method is set with appropriate arguments
-            for (auto& arg : call->getArgs()) {
-                checkExpression(arg.get());
+            // Check both branches are of the same types .................. Done
+            std::string then_type = cond->getThen_expr()->getTypeName();
+            if (cond->getElse_expr()) {
+                checkExpression(cond->getElse_expr());
+                std::string else_type = cond->getElse_expr()->getTypeName();
+
+                if (then_type == "unit" || else_type == "unit"){
+                    cond->setTypeByName("unit");
+                }else if (classMap.count(then_type)){
+                    std::string first_ancestor = getMostCommonAncestor(then_type, else_type);
+                    cond->setTypeByName(first_ancestor);
+                }else if (then_type != else_type) {
+                    std::cerr << "semantic error: then and else branches must be of the same return types." << std::endl;
+                }else{
+                    cond->setTypeByName(then_type);
+                }
+            }else{
+                cond->setTypeByName(then_type);
+            }  
+        }
+        // call method, verify recursively existence and signature ......... Done
+        else if (auto call = dynamic_cast<Call*>(expr)) {
+            // verify if the called method exists in the class hierarchy .... Done
+            ClassNode* currentClass = classMap[call->getClassName()];
+            MethodNode* method = nullptr;
+
+            while (currentClass) {
+                for (auto &m : currentClass->getMethods()) {
+                    if (m->getName() == call->getMethodName()) {
+                        method = m.get();
+                        break;
+                    }
+                }
+                if (method)
+                    break;
+                if (currentClass->parent.empty())
+                    break;
+                if(currentClass->parent == "Object")
+                    break; //TODO problem is we use Object methods like print()...
+
+                currentClass = classMap[currentClass->parent];
             }
-        } else if (auto assign = dynamic_cast<Assign*>(expr)) {
+
+            if (!method) {
+            std::cerr << "semantic error : method '" << call->getMethodName() 
+                  << "' not found in class hierarchy of '" << call->getClassName() << "'." << std::endl;
+            return;
+            }
+
+            // verify the arguments match the method's signature ............. Done
+            const auto& formals = method->getFormals();
+            const auto& args = call->getArgs();
+
+            if (formals.size() != args.size()) {
+                std::cerr << "semantic error : method '" << call->getMethodName() 
+                    << "' expects " << formals.size() << " arguments, but " 
+                    << args.size() << " were provided." << std::endl;
+                return;
+            }
+
+            for (size_t i = 0; i < args.size(); ++i) {
+                checkExpression(args[i].get());
+                if (args[i]->getTypeName() != formals[i]->getTypeName()) {
+                    std::cerr << "semantic error: Argument " << i + 1 
+                        << " of method '" << call->getMethodName() 
+                        << "' expects type '" << formals[i]->getTypeName() 
+                        << "', but got type '" << args[i]->getTypeName() << "'." << std::endl;
+                }
+            }
+
+            call->setTypeByName(method->getReturnType().getName());
+        }
+        // verify variable exists and the type of the assigned expression matches its type ....... Done
+        else if (auto assign = dynamic_cast<Assign*>(expr)) {
             checkExpression(assign->getExpr());
-            // Verify if the type of the assigned expression matches the variable type
-        } else if (auto intLiteral = dynamic_cast<IntegerLiteral*>(expr)) {
+            // verify if the variable exists ............................... Done
+            if (symb_tab.lookup(assign->getName()).empty()) {
+                std::cerr << "semantic error: You must to declare the variable '"<< assign->getName()
+                << "' before assignment." << std::endl;
+            }
+            // verify if the type of expression matches the variable type ... Done
+            if (symb_tab.lookup(assign->getName()) != assign->getExpr()->getTypeName())
+                std::cerr << "semantic error: You cannot assign a different type '"
+                << assign->getExpr()->getTypeName() 
+                << "' to variable '"<< assign->getName()
+                << "' of original type '" << symb_tab.lookup(assign->getName()) << std::endl;
+
+        }
+
+        else if (auto intLiteral = dynamic_cast<IntegerLiteral*>(expr)) {
             intLiteral->setTypeByName("int32");
         } else if (auto strLiteral = dynamic_cast<StringLiteral*>(expr)) {
             strLiteral->setTypeByName("string");
         } else if (auto boolLiteral = dynamic_cast<BooleanLiteral*>(expr)) {
             boolLiteral->setTypeByName("bool");
-        } else if (auto whileLoop = dynamic_cast<WhileLoop*>(expr)) {
+        }
+
+        // check if condition epression returns bool ......................... Done
+        else if (auto whileLoop = dynamic_cast<WhileLoop*>(expr)) {
+            // check if condition epression returns bool ..................... Done
             checkExpression(whileLoop->getCond_expr());
-            checkExpression(whileLoop->getBody_expr());
             if (whileLoop->getCond_expr()->getTypeName() != "bool") {
                 std::cerr << "Type error: While loop condition must be of type bool." << std::endl;
             }
-            whileLoop->setTypeByName("unit");
-        } else if (auto block = dynamic_cast<Block*>(expr)) {
+            checkExpression(whileLoop->getBody_expr());
+            whileLoop->setTypeByName("unit"); //TODO always unit or the return type of last expr in block?
+        }
+        
+        // just set the return type to thetype of the last expression ........ Done
+        else if (auto block = dynamic_cast<Block*>(expr)) {
             
             symb_tab.enterScope();
 
@@ -293,7 +423,10 @@ private:
             
             symb_tab.exitScope();
         
-        } else if (auto let = dynamic_cast<Let*>(expr)) {
+        }
+        
+        //TODO see vsop manual for let .. in
+        else if (auto let = dynamic_cast<Let*>(expr)) {
             if (let->getInitExpr()) {
                 checkExpression(let->getInitExpr());
             }
@@ -301,20 +434,47 @@ private:
                 checkExpression(let->getScopeExpr());
             }
             let->setTypeByName(let->getScopeExpr()->getTypeName());
-        } else if (auto unOp = dynamic_cast<UnOp*>(expr)) {
+        }
+
+        // TODO 
+        else if (auto unOp = dynamic_cast<UnOp*>(expr)) {
             checkExpression(unOp->getExpr());
+            if(unOp->getOp() == "isnull")
+                unOp->setTypeByName("bool");
+            else if(unOp->getOp() == "-")
+                unOp->setTypeByName(unOp->getExpr()->getTypeName());
+            else if(unOp->getOp() == "not")
+                unOp->setTypeByName(unOp->getExpr()->getTypeName());
             // Verify the type of the operand and set the result type
-        } else if (auto objId = dynamic_cast<ObjectIdentifier*>(expr)) {
-            // Verify if the object identifier is declared and set its type
-        } else if (auto self = dynamic_cast<Self*>(expr)) {
+        }
+        
+        // Verify if the object identifier is declared and set its type
+        else if (auto objIden = dynamic_cast<ObjectIdentifier*>(expr)) {
+            
+        }
+        //TODO
+        else if (auto self = dynamic_cast<Self*>(expr)) {
             self->setTypeByName("self");
-        } else if (auto newExpr = dynamic_cast<New*>(expr)) {
+        }
+        //TODO
+        else if (auto newExpr = dynamic_cast<New*>(expr)) {
             // Verify if the class being instantiated exists
-        } else if (auto parenthesis = dynamic_cast<Parenthesis*>(expr)) {
+            if (classMap.count(newExpr->getClassName()))
+                newExpr->setTypeByName(newExpr->getClassName());
+            else
+                std::cerr << "semantic error : the class '" << newExpr->getClassName() << "' does not exists to be instanciated." << std::endl;
+
+        }
+        //TODO
+        else if (auto parenthesis = dynamic_cast<Parenthesis*>(expr)) {
             parenthesis->setTypeByName("unit");
-        } else if (auto formula = dynamic_cast<Formula*>(expr)) {
+        }
+        //TODO
+        else if (auto formula = dynamic_cast<Formula*>(expr)) {
             // Verify the formula's type and name
-        } else {
+        }
+        //TODO
+        else {
             std::cerr << "Error: Unknown expression type." << std::endl;
         }
     }

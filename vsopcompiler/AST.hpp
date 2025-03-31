@@ -61,7 +61,7 @@ class Expr {
         virtual ~Expr() = default;
         virtual std::string toString() const = 0;
         virtual std::string toString2() const = 0;
-        std::string getTypeName() { return type.getName(); };
+        std::string getTypeName() const { return type.getName(); };
         void setTypeByName(std::string t) { type = Type(t); };
         void setType(const Type& t) { type = t; };
     
@@ -280,6 +280,8 @@ class Call : public Expr {
         std::string toString2() const override { return toString(); };
         std::string getMethodName() const;
         std::vector<std::unique_ptr<Expr>>& getArgs();
+        std::string getClassName() const;
+        Expr* getExprObjectIdentifier() const {return exprobject_ident.get(); };
 
     private:
         std::string method_name;
@@ -366,7 +368,9 @@ class New : public Expr {
     public:
         New(std::string n);
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
+        std::string getClassName() const  {return getTypeName();};
+
     private:
         std::string name;
 };
@@ -420,6 +424,7 @@ class MethodNode : public ASTNode {
         std::string getName() { return name; };
         Type getReturnType() { return returnType; };
         std::vector<std::unique_ptr<Formal>>& getFormals() { return formals; };
+        Block* getBlock() { return bloc.get(); };
 };
 /*====================================================================== */
 

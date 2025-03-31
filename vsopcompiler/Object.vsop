@@ -1,0 +1,12 @@
+class Object
+{
+    print(s : string) : Object { (* print s on stdout, then return self*) }
+    printBool(b: bool) : Object { (* print b on stdout, then return self *) }
+    printInt32(i: int32) : Object { (* print i on stdout, then return self *) }
+    inputLine() : string {
+(* read one line from stdin, return "" in case of error *) }
+    inputBool() : bool {
+(* read one boolean value from stdin, exit with error message in case of error *) }
+    inputInt32() : int32 {
+(* read one integer from stdin, exit with error message in case of error *) }
+}

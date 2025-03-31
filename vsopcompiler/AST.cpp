@@ -457,6 +457,9 @@ std::string Call::toString() const {
    return result;
 }
 
+std::string Call::getClassName() const {
+   return exprobject_ident->getTypeName();
+}
 /**
 * Returns the vector of arguments
 */
@@ -518,13 +521,16 @@ std::string Parenthesis::toString() const {
 /**
 * New - Represents object instantiation
 */
-New::New(std::string n) : name(std::move(n)) {}
+New::New(std::string n) : name(std::move(n)) { setTypeByName(n); }
 
 /**
 * Returns a string representation of the new expression
 */
 std::string New::toString() const {
    return "New(" + name + ")";
+}
+std::string New::toString2() const {
+   return "New(" + name + ") : " + getTypeName();
 }
 /*================================================================================= */
 /* ====================== FieldNode ========================================== */

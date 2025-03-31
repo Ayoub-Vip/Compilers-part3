@@ -588,7 +588,7 @@ int main(int argc, char **argv) {
     }
      else {
         std::cerr << "Strange Option: " << argv[1] << "\n Usage : " << argv[0] 
-                  << " -p|-l <source_code_file>\n";
+                  << " -l|-p|-c <source_code_file>\n";  
     }
     
     // Clean up
