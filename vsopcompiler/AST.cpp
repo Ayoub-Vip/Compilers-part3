@@ -209,7 +209,7 @@ Expr* WhileLoop::getBody_expr() const {
 /**
 * Formal - Represents a formal parameter in a method definition
 */
-Formal::Formal(const std::string& n, const Type& t) : name(n), type(t) {}
+Formal::Formal(const std::string& n, const Type& t) : name(n), type(t) {setType(t);}
 
 /**
 * Returns the parameter name
@@ -481,6 +481,9 @@ ObjectIdentifier::ObjectIdentifier(std::string n) : name(std::move(n)) {}
 std::string ObjectIdentifier::toString() const {
    return name;
 }
+std::string ObjectIdentifier::toString2() const {
+   return name + " : " + getTypeName();
+}
 
 /**
 * Returns the name
@@ -532,6 +535,9 @@ std::string New::toString() const {
 std::string New::toString2() const {
    return "New(" + name + ") : " + getTypeName();
 }
+
+std::string New::getClassName() const {return name;};
+
 /*================================================================================= */
 /* ====================== FieldNode ========================================== */
 /**

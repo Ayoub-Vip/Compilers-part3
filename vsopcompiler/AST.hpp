@@ -337,7 +337,7 @@ class ObjectIdentifier : public Expr {
     public:
         ObjectIdentifier(std::string n);
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override ;
         std::string getName() const;
 
     private:

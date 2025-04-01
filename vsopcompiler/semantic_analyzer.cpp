@@ -217,7 +217,7 @@ private:
         std::unordered_map<std::string, bool> visitedFromalName;
         for (auto& formal : method->getFormals()) {
             std::string fname = formal->getName();
-            std::string ftype = formal->getTypeName();
+            std::string ftype = formal->getType().getName();
             // std::cerr << "semantic error : the method " << method->getName() << " several fname'" << fname <<"'" << std::endl;
 
             if(visitedFromalName.count(fname) == 0){
@@ -486,10 +486,16 @@ private:
         // Verify if the object identifier is declared and set its type
         else if (auto objIden = dynamic_cast<ObjectIdentifier*>(expr)) {
             std::string objType = symb_tab.lookup(objIden->getName());
-            if(!objIden)
+            // std::cout << "objType ----------> "<<objType<<std::endl;
+            // std::cout << "obobjIden->getName()jType ----------> "<<objIden->getName()<<std::endl;
+            
+            if(objType == "")
                 std::cout << "semantic error : the object '" << objIden->toString()<<"' is not defined in the scope." <<std::endl;
             else
                 objIden->setTypeByName(objType);
+            
+            // std::cout << "objType agiµain ----------> "<<objIden->getTypeName()<<std::endl;
+            
         }
         //TODO
         else if (auto self = dynamic_cast<Self*>(expr)) {

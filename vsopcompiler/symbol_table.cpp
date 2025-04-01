@@ -28,7 +28,7 @@ public:
         }
     }
 
-    bool declare(const std::string& name, const std::string& type) {
+    bool declare(const std::string name, const std::string type) {
         // if (scopes.top().count(name) != 0) {
         //     return false; // Already declared in the current scope
         // }
