@@ -72,9 +72,15 @@ void reportSyntaxError(std::string message, unsigned int line, unsigned int colu
         int line_error;           // Line where error occurred
         int column_error;         // Column where error occurred
     } error_location;
+    struct {
+        char* str;
+        unsigned int line;
+        unsigned int column;
+    } loc;
 }
 
 %debug
+%locations
 %token <num> NUMBER               // Integer literal
 %token CLASS EXTENDS IF THEN ELSE WHILE DO LET IN NEW NOT SELF UNIT BOOL INT32 OR AND ISNULL STRING TRUE FALSE
 %token LBRACE RBRACE LPAR RPAR COLON SEMICOLON COMMA EQUAL LOWER LOWER_EQUAL ASSIGN DOT PLUS MINUS TIMES DIV POW GREATER
@@ -86,7 +92,8 @@ void reportSyntaxError(std::string message, unsigned int line, unsigned int colu
 %nterm <expr_list> block_body args expr_list
 %nterm <formal_list> formals
 %nterm <str> type extends_or_not
-%token <str> OBJECT_IDENTIFIER TYPE_IDENTIFIER
+%token <loc> OBJECT_IDENTIFIER
+%token <loc> TYPE_IDENTIFIER
 %token <str> STR TRUE_TYPE FALSE_TYPE
 
 // Operator precedence and associativity rules
@@ -131,13 +138,13 @@ classDeclList:
 /* A class declaration */
 classDecl:
     CLASS TYPE_IDENTIFIER extends_or_not LBRACE class_body RBRACE {
-    $$ = new ClassNode(std::string($2), std::string($3), &static_cast<ClassNode*>($5)->getFields(), &static_cast<ClassNode*>($5)->getMethods());
+    $$ = new ClassNode(std::string($2.str), std::string($3), &static_cast<ClassNode*>($5)->getFields(), &static_cast<ClassNode*>($5)->getMethods(), $2.column, $2.line);
     };
 
 /* Parent can be empty (defaults to Object) */
 extends_or_not:
     EXTENDS TYPE_IDENTIFIER {
-        $$ = $2;
+        $$ = $2.str;
     }
     | /* empty */ {
         $$ = (char*)"Object";
@@ -162,7 +169,10 @@ class_body:
 /* Field declaration with optional initialization */
 field:
     OBJECT_IDENTIFIER COLON type field_assign SEMICOLON {
-        $$ = (new FieldNode(std::string($1), Type($3), std::unique_ptr<Expr>(static_cast<Expr*>($4))));
+        $$ = (new FieldNode(std::string($1.str), Type($3),
+        $1.column, $1.line,
+        std::unique_ptr<Expr>(static_cast<Expr*>($4))
+        ));
     };
 
 /* Optional field initialization */
@@ -184,11 +194,11 @@ Method:
         }
         delete $3; // Freedom Memomry (Ayoub don't forget to free memory pleaaase ;) )
         
-        $$ = new MethodNode(std::string($1), Type($6), std::move(params), std::unique_ptr<Block>(static_cast<Block*>($7)));
+        $$ = new MethodNode(std::string($1.str), Type($6), std::move(params), std::unique_ptr<Block>(static_cast<Block*>($7)));
     }
     | OBJECT_IDENTIFIER LPAR RPAR COLON type block {
         // Method without parameters
-        $$ = new MethodNode(std::string($1), Type($5), std::unique_ptr<Block>(static_cast<Block*>($6)));
+        $$ = new MethodNode(std::string($1.str), Type($5), std::unique_ptr<Block>(static_cast<Block*>($6)));
     }
     | OBJECT_IDENTIFIER LPAR formals RPAR COLON type {
         // Error: Method declaration without implementation
@@ -240,13 +250,13 @@ formals:
 /* Formal parameter */
 formal:
     OBJECT_IDENTIFIER COLON type {
-        $$ = static_cast<Expr*>(new Formal(std::string($1), Type($3)));
+        $$ = static_cast<Expr*>(new Formal(std::string($1.str), Type($3)));
     };
 
 /* Type specification */
 type:
     TYPE_IDENTIFIER {
-        $$ = $1;
+        $$ = $1.str;
     }
     | INT32 {
         $$ = (char*)"int32";
@@ -315,7 +325,7 @@ expr:
     /* Let binding without initialization */
     | LET OBJECT_IDENTIFIER COLON type IN expr {
         $$ = static_cast<Expr*>(new Let(
-            std::string($2), 
+            std::string($2.str), 
             Type($4), 
             nullptr, 
             std::unique_ptr<Expr>(static_cast<Expr*>($6))
@@ -324,7 +334,7 @@ expr:
     /* Let binding with initialization */
     | LET OBJECT_IDENTIFIER COLON type ASSIGN expr IN expr {
         $$ = static_cast<Expr*>(new Let(
-            std::string($2), 
+            std::string($2.str), 
             Type($4), 
             std::unique_ptr<Expr>(static_cast<Expr*>($6)), 
             std::unique_ptr<Expr>(static_cast<Expr*>($8))
@@ -342,7 +352,7 @@ expr:
     }
     /* Assignment */
     | OBJECT_IDENTIFIER ASSIGN expr {
-        $$ = static_cast<Expr*>(new Assign($1, std::unique_ptr<Expr>(static_cast<Expr*>($3))));
+        $$ = static_cast<Expr*>(new Assign($1.str, std::unique_ptr<Expr>(static_cast<Expr*>($3))));
     } 
     
     /* Unary Operations */ 
@@ -394,7 +404,7 @@ expr:
             delete $3;
         }
         $$ = static_cast<Expr*>(new Call(
-        std::string($1),
+        std::string($1.str),
         std::move(arguments),
         std::unique_ptr<Expr>(new Self("self"))
     ));
@@ -407,7 +417,7 @@ expr:
             delete $5;
         }
         $$ = static_cast<Expr*>(new Call(
-            std::string($3),
+            std::string($3.str),
             std::move(arguments),
             std::unique_ptr<Expr>(static_cast<Expr*>($1))
         ));
@@ -415,12 +425,12 @@ expr:
     
     /* Object instantiation */
     | NEW TYPE_IDENTIFIER {
-        $$ = static_cast<Expr*>(new New(std::string($2)));
+        $$ = static_cast<Expr*>(new New(std::string($2.str)));
     }
     
     /* Variable reference */
     | OBJECT_IDENTIFIER {
-        $$ = static_cast<Expr*>(new ObjectIdentifier($1));
+        $$ = static_cast<Expr*>(new ObjectIdentifier(yylval.loc.str, yylval.loc.column, yylval.loc.line));
     }
     
     /* Self reference */
@@ -534,10 +544,10 @@ int main(int argc, char **argv) {
         if (!yyparse()) {
             // Successful parsing
             if (root) {
-                SemanticAnalyzer analyzer;
-                analyzer.analyze(static_cast<Program*>(root.get()));
+                SemanticAnalyzer* analyzer = new SemanticAnalyzer(std::string(fileName));
+                analyzer->analyze(static_cast<Program*>(root.get()));
                 
-                if (analyzer.isAccepted)
+                if (analyzer->isAccepted)
                     std::cout << root->toString2() << std::endl;
                 else
                     return EXIT_FAILURE;

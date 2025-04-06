@@ -42,7 +42,15 @@ class Type{
  * ASTNode - Base class for all nodes in the AST
  */
 class ASTNode {
+    protected:
+        unsigned int column;
+        unsigned int line;
+
     public:
+        ASTNode() : column(0), line(0) {};
+        ASTNode(unsigned int column, unsigned int line) : column(column), line(line) {};
+        unsigned int getColumn() const { return column; };
+        unsigned int getLine() const { return line; };
         virtual std::string toString() const = 0; // Method to be overridden
         virtual std::string toString2() const = 0; // Method to be overridden
 };
@@ -53,11 +61,15 @@ class ASTNode {
  */
 class Expr {
     protected:
-        Type type; // "int32", "bool", "string", "unit"
-    
+        Type type; // "int32", "bool", "string", "unit" or class-name
+        unsigned int column;
+        unsigned int line;
+
     public:
-        Expr(const Type& t) : type(t) {};
-        Expr() : type(Type("Undefined return type.")) {};
+        Expr(const Type& t) : type(t), column(0), line(0) {};
+        Expr() : type(Type("Undefined_return_type")), column(0), line(0){};
+        Expr(const Type& t, unsigned int column, unsigned int line) : type(t), column(column), line(line) {};
+        Expr(unsigned int column, unsigned int line) : type(Type("Undefined_return_type")), column(column), line(line) {};
         virtual ~Expr() = default;
         virtual std::string toString() const = 0;
         virtual std::string toString2() const = 0;
@@ -121,6 +133,7 @@ class BooleanLiteral : public Expr {
 class BinaryOperation : public Expr {
     public:
         BinaryOperation(const std::string &op, std::unique_ptr<Expr> left, std::unique_ptr<Expr> right);
+        BinaryOperation(const std::string &op, std::unique_ptr<Expr> left, std::unique_ptr<Expr> right, unsigned int column, unsigned int line);
         std::string getOperator() const;
         Expr* getLeft() const;
         Expr* getRight() const;
@@ -302,40 +315,24 @@ class FieldNode : public ASTNode {
     
     public:
         FieldNode(std::string n, Type t, std::unique_ptr<Expr> expr = nullptr);
+        FieldNode(std::string n, Type t, unsigned int column, unsigned int line, std::unique_ptr<Expr> expr = nullptr);
         std::string toString() const override;
         std::string toString2() const override { return toString(); };
         std::string getName() const;
         std::string getTypeName() {return type.getName(); };
         Type getType() const;
 };
-/*====================================================================== */
+/*======================================================================= */
 
-/*============================= Formula ================================ */
-/**
- * Formula - Represents a formula expression
- */
-// class Formula : public Expr {
-//     public:
-//         Formula(std::unique_ptr<Type> type, std::string name);
-//         std::string toString() const override;
-//         std::string toString2() const override { return toString(); };
 
-//         Type* getType() const;
-//         std::string getName() const;
-
-//     private:
-//         std::unique_ptr<Type> type;
-//         std::string name;
-// };
-/*====================================================================== */
-
-/* ======================== ObjectIdentifier ========================== */
+/* ========================== ObjectIdentifier ========================== */
 /**
  * ObjectIdentifier - Represents the object idebtifier 
  */
 class ObjectIdentifier : public Expr {
     public:
         ObjectIdentifier(std::string n);
+        ObjectIdentifier(std::string n, unsigned int column, unsigned int line);
         std::string toString() const override;
         std::string toString2() const override ;
         std::string getName() const;
@@ -407,9 +404,17 @@ class MethodNode : public ASTNode {
          * @param params List of formal parameters
          * @param b Method body block
          */
-        MethodNode(std::string n, Type rt, std::vector<std::unique_ptr<Formal>> params, std::unique_ptr<Block> b)
-            : name(std::move(n)), returnType(std::move(rt)), formals(std::move(params)), bloc(std::move(b)) {}
-        
+        MethodNode(std::string n, Type rt,
+            std::vector<std::unique_ptr<Formal>> params,
+            std::unique_ptr<Block> b) :
+            name(std::move(n)), returnType(std::move(rt)), formals(std::move(params)), bloc(std::move(b)) {}
+
+        MethodNode(std::string n, Type rt,
+            std::vector<std::unique_ptr<Formal>> params,
+            std::unique_ptr<Block> b,
+            unsigned int column, unsigned int line) : ASTNode(column, line),
+            name(std::move(n)), returnType(std::move(rt)), formals(std::move(params)), bloc(std::move(b)) {}
+
         /**
          * Constructor for methods without parameters
          * @param n Method name
@@ -417,7 +422,13 @@ class MethodNode : public ASTNode {
          * @param b Method body block
          */
         MethodNode(std::string n, Type rt, std::unique_ptr<Block> b)
-            : name(std::move(n)), returnType(std::move(rt)), bloc(std::move(b)) {}
+        : name(std::move(n)), returnType(std::move(rt)), bloc(std::move(b)) {}
+
+        MethodNode(std::string n, Type rt, std::unique_ptr<Block> b,
+            unsigned int column, unsigned int line)
+            : ASTNode(column, line), name(std::move(n)), returnType(std::move(rt)), bloc(std::move(b)) {}
+
+
             
         std::string toString() const override;
         std::string toString2() const override { return toString(); };
@@ -446,6 +457,9 @@ class ClassNode : public ASTNode{
          * @param M Pointer to a vector of method nodes
          */
         ClassNode(std::string name, std::string parent, std::vector<std::unique_ptr<FieldNode>>* f, std::vector<std::unique_ptr<MethodNode>>* M);
+
+        ClassNode(std::string name, std::string parent, std::vector<std::unique_ptr<FieldNode>>* f, std::vector<std::unique_ptr<MethodNode>>* M,
+        unsigned int column, unsigned int line);
         
         /**
          * Adds a field to the class

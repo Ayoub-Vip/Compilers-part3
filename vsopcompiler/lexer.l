@@ -191,31 +191,45 @@ SINGLE_COMMENT "//"[^\n]*
     if(lexer_debug_mode)
         std::cout<<yyline<<","<<yycolumn<<",object-identifier,"<<yytext<<std::endl;
     
+    yylval.loc.str = strdup(yytext); 
+    yylval.loc.line = yyline;
+    yylval.loc.column = yycolumn;
+
     yycolumn += yyleng;
-    yylval.str = strdup(yytext); 
     return OBJECT_IDENTIFIER;
     }
 {TYPE_IDENTIFIER} {
     if(lexer_debug_mode)
         std::cout<<yyline<<","<<yycolumn<<",type-identifier,"<<yytext<<std::endl;
-    yycolumn += yyleng;
     yylval.str = strdup(yytext);
+    yylval.loc.line = yyline;
+    yylval.loc.column = yycolumn;
+
+    yycolumn += yyleng;
     return TYPE_IDENTIFIER;
     }
 
 {INTEGER_LITERAL_DIGITS} {
     if(lexer_debug_mode)
         std::cout<<yyline<<","<<yycolumn<<",integer-literal,"<<std::stoi(yytext)<<std::endl;
-    yycolumn += yyleng;
+    
     yylval.num = std::stoi(yytext);
+    // yylval.loc.line = yyline;
+    // yylval.loc.column = yycolumn;
+
+    yycolumn += yyleng;
     return NUMBER;
 }
 
 {INTEGER_LITERAL_HEX} {   
     if(lexer_debug_mode)    
         std::cout<<yyline<<","<<yycolumn<<",integer-literal,"<<std::stoi(yytext, nullptr, 16)<<std::endl;
-    yycolumn += yyleng;
+    
     yylval.num = std::stoi(yytext, nullptr, 16);
+    // yylval.loc.line = yyline;
+    // yylval.loc.column = yycolumn;
+
+    yycolumn += yyleng;
     return NUMBER;
 }
 
@@ -333,8 +347,11 @@ SINGLE_COMMENT "//"[^\n]*
     if(lexer_debug_mode) {
         std::cout << "\"" << std::endl;
         // std::cout << "Envoi du token STR avec valeur : " << string_buffer << std::endl;
-    }
     yylval.str = strdup(string_buffer.c_str());
+    // yylval.loc.line = yyline;
+    // yylval.loc.column = yycolumn;
+    }
+
     yycolumn += yyleng;
     BEGIN(INITIAL);
     return STR;

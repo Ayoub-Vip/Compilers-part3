@@ -103,6 +103,10 @@ bool BooleanLiteral::getValue() const {
 BinaryOperation::BinaryOperation(const std::string &op, std::unique_ptr<Expr> left, std::unique_ptr<Expr> right)
    : Expr(Type("bool")), op(op), left(std::move(left)), right(std::move(right)) {}
 
+   BinaryOperation::BinaryOperation(const std::string &op, std::unique_ptr<Expr> left,
+   std::unique_ptr<Expr> right, unsigned int column, unsigned int line)
+   : Expr(Type("bool"), column, line), op(op), left(std::move(left)), right(std::move(right)) {}
+
 /**
 * Returns the operation symbol
 */
@@ -474,7 +478,8 @@ std::vector<std::unique_ptr<Expr>>& Call::getArgs() {
 * ObjectIdentifier - Represents a reference to an object or variable
 */
 ObjectIdentifier::ObjectIdentifier(std::string n) : name(std::move(n)) {}
-
+ObjectIdentifier::ObjectIdentifier(std::string n, unsigned int column, unsigned int line)
+    : Expr(column, line), name(std::move(n)) {}
 /**
 * Returns a string representation of the identifier
 */
@@ -544,7 +549,10 @@ std::string New::getClassName() const {return name;};
 * FieldNode - Represents a field declaration in a class
 */
 FieldNode::FieldNode(std::string n, Type t, std::unique_ptr<Expr> expr)
-   : name(std::move(n)), type(std::move(t)), init_expr(std::move(expr)) {}
+   : ASTNode(), name(std::move(n)), type(std::move(t)), init_expr(std::move(expr)) {}
+
+FieldNode::FieldNode(std::string n, Type t, unsigned int column, unsigned int line, std::unique_ptr<Expr> expr)
+   : ASTNode(column, line), name(std::move(n)), type(std::move(t)), init_expr(std::move(expr)) {}
 
 /**
 * Returns a string representation of the field
@@ -608,7 +616,29 @@ std::string ClassNode::toString() const {
 * Constructor for ClassNode
 */
 ClassNode::ClassNode(std::string n, std::string p, std::vector<std::unique_ptr<FieldNode>>* f, std::vector<std::unique_ptr<MethodNode>>* m)
-   : name(n), parent(p) {
+   : ASTNode(), name(n), parent(p) {
+       if (!f) {
+           // std::cout << "WARNING: f est NULL, initialisation de fields avec un vector vide." << std::endl;
+           fields = std::vector<std::unique_ptr<FieldNode>>();
+       } else {
+           // std::cout << "INFO: f contient " << f->size() << " éléments." << std::endl;
+           fields = std::move(*f);
+       }
+       if (!m) {
+           // std::cout << "WARNING: m est NULL, initialisation de methods avec un vector vide." << std::endl;
+           methods = std::vector<std::unique_ptr<MethodNode>>();
+       } else {
+           // std::cout << "INFO: m contient " << m->size() << " éléments." << std::endl;
+           methods = std::move(*m);
+       }
+   }
+
+ClassNode::ClassNode(std::string n, std::string p,
+                     std::vector<std::unique_ptr<FieldNode>>* f,
+                     std::vector<std::unique_ptr<MethodNode>>* m,
+                     unsigned int column, unsigned int line
+                  )
+   : ASTNode(column, line), name(n), parent(p) {
        if (!f) {
            // std::cout << "WARNING: f est NULL, initialisation de fields avec un vector vide." << std::endl;
            fields = std::vector<std::unique_ptr<FieldNode>>();
