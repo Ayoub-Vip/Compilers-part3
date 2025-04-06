@@ -18,13 +18,17 @@ public:
 
         checkClassInhiretence(program->getClasses());
         
-        std::cout << "Checking class Inhiretence Finished ...... Done " << std::endl;
+        // std::cout << "Checking class Inhiretence Finished ...... Done " << std::end;
 
         // Perform semantic checks on the entire program
         for (const auto& cls : program->getClasses()) {
             
             checkClass((ClassNode*) cls.get());
         }
+
+
+        if (isAccepted)
+            exit(1); // do not print syntax if semantic error is detected
 
     }
     bool isAccepted = true;
@@ -54,16 +58,16 @@ private:
         // Populate class map and check for duplicate class definitions
         for (auto& cls : classes) {
             if (classMap.find(cls->name) != classMap.end()) {
-                std::cerr << "Error: Class " << cls->name << " is defined more than once." << std::endl;
+                reportSemanticError("Class " + cls->name + " is defined more than once.");
                 continue;
             }
             if (cls->name == "Object") {
-                std::cerr << "Error: Class cannot be named 'Object'." << std::endl;
+                reportSemanticError("Class cannot be named 'Object'.");
                 continue;
             }
             for (const std::string& s : {"int32", "bool", "string", "unit"}) {//TODO this is additional from my mind
                 if (s == cls->name)
-                std::cerr << "Error: Class cannot be named 'int32', 'bool', 'string', or 'unit'." << std::endl;
+                reportSemanticError("Class cannot be named 'int32', 'bool', 'string', or 'unit'.");
                 continue;
             }
             classMap[cls->name] = cls.get();
@@ -78,7 +82,7 @@ private:
             auto cls = classMap[className];
             if (cls->parent != "" && classMap.find(cls->parent) != classMap.end()) {
                 if (isCyclic(cls->parent)) {
-                    std::cerr << "Error: Cyclic inheritance detected involving class " << className << "." << std::endl;
+                    reportSemanticError("Cyclic inheritance detected involving class " + className + ".");
                     return true;
                 }
             }
@@ -97,14 +101,14 @@ private:
         // Check for undefined parent classes
         for (auto& cls : classes) {
             if (!cls->parent.empty() && cls->parent != "Object" && classMap.find(cls->parent) == classMap.end()) {
-                std::cerr << "Error: Parent class " << cls->parent << " of class " << cls->name << " is not declared." << std::endl;
+                reportSemanticError("Parent class " + cls->parent + " of class " + cls->name + " is not declared.");
             }
         }
 
         // Check for the existence of class Main
         auto mainIt = classMap.find("Main");
         if (mainIt == classMap.end()) {
-            std::cerr << "Error: No class 'Main' defined." << std::endl;
+            reportSemanticError("No class 'Main' defined.");
             return;
         }
 
@@ -122,7 +126,7 @@ private:
         }
 
         if (!hasMainMethod) {
-            std::cerr << "Error: Class 'Main' must have a 'main' method with no arguments and return type 'int32'." << std::endl;
+            reportSemanticError("Class 'Main' must have a 'main' method with no arguments and return type 'int32'.");
         }
     }
     
@@ -133,7 +137,7 @@ private:
 
         symb_tab.enterScope();
         
-        std::cout << "Checking class: " << cls->name << std::endl;
+        // std::cout << "Checking class: " + cls->name << std::end;
 
         ///// check fields ................................................ Done
         for (auto& field : cls->getFields()) {
@@ -143,7 +147,7 @@ private:
                 const auto& pcls = classMap[cls->parent];
                 for (auto& pfield : pcls->getFields()){
                     if (pfield->getName() == field->getName() && pfield->getTypeName() != field->getTypeName())
-                        std::cerr << "semantic error : the inhireted field '" << pfield->getName() << "' of type '" << pfield->getTypeName() << "' cannot be redefined with different type '" << field->getTypeName() <<"' in the child class" << std::endl;                    
+                        reportSemanticError("the inhireted field '" + pfield->getName() + "' of type '" + pfield->getTypeName() + "' cannot be redefined with different type '" + field->getTypeName() +"' in the child class");                    
                 }
             }
 
@@ -175,10 +179,10 @@ private:
                 return;
         }
 
-        std::cout << "Checking field: " << field->getName() << std::endl;
+        // std::cout << "Checking field: " + field->getName() << std::end;
         if (classMap.count(ftype) == 0)
         reportSemanticError("class type '"+ftype+"' does not exist", field->getColumn(), field->getLine());
-            std::cerr << "semantic error : class type '" << ftype << "' does not exist" << std::endl;
+            reportSemanticError("class type '" + ftype + "' does not exist");
     }
     
     // if extending a parent class, must have the same methods args and return type (another type..)..... Done
@@ -187,23 +191,23 @@ private:
             for (auto& cmethod : child->getMethods()) {
                 if(pmethod->getName() == cmethod->getName()) {
                     if (cmethod->getReturnType().getName() != pmethod->getReturnType().getName()){
-                        std::cerr << "semantic error : parent class method return type is not the same as the child return type" << std::endl;
+                        reportSemanticError("parent class method return type is not the same as the child return type");
                         
                     }
                     if (cmethod->getFormals().size() != pmethod->getFormals().size()) {
-                        std::cerr << "semantic error : parent class method signature is not the same as the child signature" << std::endl;
+                        reportSemanticError("parent class method signature is not the same as the child signature");
                         return;
                     }
                     for (size_t i = 0; i < cmethod->getFormals().size() - 1; ++i) {
                         if (cmethod->getFormals()[i]->getName() == cmethod->getFormals()[i]->getName()) {
                             continue;
                         } else {
-                            std::cerr << "semantic error : parent class method signature names is not the same as the child" << std::endl;
+                            reportSemanticError("parent class method signature names is not the same as the child");
                         }
                         if (cmethod->getFormals()[i]->getTypeName() == cmethod->getFormals()[i]->getTypeName()) {
                             continue;
                         } else {
-                            std::cerr << "semantic error : parent class method signature type is not the same as the child" << std::endl;
+                            reportSemanticError("parent class method signature type is not the same as the child");
                         }
                     }
                 }
@@ -213,7 +217,7 @@ private:
 
     // Check method-level semantics (e.g., parameter types, return type)
     void checkMethod(MethodNode* method) {
-        std::cout << "Checking method: " << method->getName() << std::endl;
+        // std::cout << "Checking method: " + method->getName() << std::end;
         method_in_question = method;
         symb_tab.enterScope();
         
@@ -222,7 +226,7 @@ private:
         for (auto& formal : method->getFormals()) {
             std::string fname = formal->getName();
             std::string ftype = formal->getType().getName();
-            // std::cerr << "semantic error : the method " << method->getName() << " several fname'" << fname <<"'" << std::endl;
+            // reportSemanticError("the method " + method->getName() + " several fname'" + fname +"'");
 
             if(visitedFromalName.count(fname) == 0){
                 
@@ -231,7 +235,7 @@ private:
                 symb_tab.declare(fname, ftype);  //TODO what if a formal is already in the previous (class field) scope with  different type??
             }
             else {
-                std::cerr << "semantic error : the method " << method->getName() << " has several formals with the same name'" << fname <<"'" << std::endl;
+                reportSemanticError("the method " + method->getName() + " has several formals with the same name'" + fname +"'");
             }
         }
         
@@ -282,27 +286,24 @@ private:
 
             if (op == "=" or op == "<" or op == "<=") {
                 if (left_type != "int32" || right_type != "int32") {
-                    std::cerr << "Type error: Binary operation requires int32 operands." 
-                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
+                    reportSemanticError("Binary operation requires int32 operands, but found "+op+"("+ left_type +","+right_type+")");
                 }
                 binOp->setTypeByName("bool");
             }
             else if (op != "and"){
                 if (left_type != "int32" || right_type != "int32") {
-                    std::cerr << "Type error: Binary operation requires int32 operands." 
-                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
+                    reportSemanticError("Binary operation requires int32 operands, but found "+op+"("+ left_type +","+right_type+")");
                 }
                 binOp->setTypeByName("int32");
             }
             else if(op == "and"){
                 if (left_type != "bool" || right_type != "bool") {
-                    std::cerr << "Type error: Binary operation requires bool operands." 
-                    << "but found "<<op<<"("<< left_type <<","<<left_type << std::endl;
+                    reportSemanticError("Binary operation requires bool operands, but found "+op+"("+ left_type +","+right_type+")");
                 }
                 binOp->setTypeByName("bool");
             }
             else{
-                std::cerr << "Type error: Binary operation, unknown operand '"<< op << "'"<< std::endl;
+                reportSemanticError("Binary operation, unknown operand '"+ op + "'");
             }
         }
         // same branches type and bool condition ........................... Done 
@@ -312,7 +313,7 @@ private:
             
             // check condition is Bool type  .............................. Done
             if (cond->getCond_expr()->getTypeName() != "bool") {
-                std::cerr << "Type error: Condition must be of type bool." << std::endl;
+                reportSemanticError("Condition must be of type bool.");
             }
 
             // Check both branches are of the same types .................. Done
@@ -327,7 +328,7 @@ private:
                     std::string first_ancestor = getMostCommonAncestor(then_type, else_type);
                     cond->setTypeByName(first_ancestor);
                 }else if (then_type != else_type) {
-                    std::cerr << "semantic error: then and else branches must be of the same return types." << std::endl;
+                    reportSemanticError("semantic error: then and else branches must be of the same return types.");
                 }else{
                     cond->setTypeByName(then_type);
                 }
@@ -373,8 +374,8 @@ private:
             }
 
             if (!method) {
-            std::cerr << "semantic error : method '" << call->getMethodName() 
-                  << "' not found in class hierarchy of '" << call->getClassName() << "'." << std::endl;
+            reportSemanticError("method '" + call->getMethodName() 
+                  + "' not found in class hierarchy of '" + call->getClassName() + "'.");
             return;
             }
 
@@ -383,19 +384,19 @@ private:
             const auto& args = call->getArgs();
 
             if (formals.size() != args.size()) {
-                std::cerr << "semantic error : method '" << call->getMethodName() 
-                    << "' expects " << formals.size() << " arguments, but " 
-                    << args.size() << " were provided." << std::endl;
+                reportSemanticError("method '" + call->getMethodName() 
+                    + "' expects " + std::to_string(formals.size()) + " arguments, but " 
+                    + std::to_string(args.size()) + " were provided.");
                 return;
             }
 
             for (size_t i = 0; i < args.size(); ++i) {
                 checkExpression(args[i].get());
                 if (args[i]->getTypeName() != formals[i]->getTypeName()) {
-                    std::cerr << "semantic error: Argument " << i + 1 
-                        << " of method '" << call->getMethodName() 
-                        << "' expects type '" << formals[i]->getTypeName() 
-                        << "', but got type '" << args[i]->getTypeName() << "'." << std::endl;
+                    reportSemanticError("Argument in position" + std::to_string(i+1)  
+                        + " of method '" + call->getMethodName() 
+                        + "' expects type '" + formals[i]->getTypeName() 
+                        + "', but got type '" + args[i]->getTypeName() + "'.");
                 }
             }
 
@@ -406,15 +407,15 @@ private:
             checkExpression(assign->getExpr());
             // verify if the variable exists ............................... Done
             if (symb_tab.lookup(assign->getName()).empty()) {
-                std::cerr << "semantic error: You must to declare the variable '"<< assign->getName()
-                << "' before assignment." << std::endl;
+                reportSemanticError("You must to declare the variable '"+ assign->getName()
+                + "' before assignment.");
             }
             // verify if the type of expression matches the variable type ... Done
             if (symb_tab.lookup(assign->getName()) != assign->getExpr()->getTypeName())
-                std::cerr << "semantic error: You cannot assign a different type '"
-                << assign->getExpr()->getTypeName() 
-                << "' to variable '"<< assign->getName()
-                << "' of original type '" << symb_tab.lookup(assign->getName()) << std::endl;
+                reportSemanticError("You cannot assign a different type '"
+                + assign->getExpr()->getTypeName() 
+                + "' to variable '"+ assign->getName()
+                + "' of original type '" + symb_tab.lookup(assign->getName()));
 
         }
 
@@ -431,7 +432,7 @@ private:
             // check if condition epression returns bool ..................... Done
             checkExpression(whileLoop->getCond_expr());
             if (whileLoop->getCond_expr()->getTypeName() != "bool") {
-                std::cerr << "Type error: While loop condition must be of type bool." << std::endl;
+                reportSemanticError("While loop condition must be of type bool.");
             }
             checkExpression(whileLoop->getBody_expr());
             whileLoop->setTypeByName("unit"); //TODO always unit or the return type of last expr in block?
@@ -466,12 +467,12 @@ private:
             if (let->getInitExpr()) {
                 checkExpression(let->getInitExpr());
                 if (let->getType().getName() != let->getInitExpr()->getTypeName()) {
-                std::cerr << "semantic error: the type of let '"<< let->getType().getName() << "' must be the same as its Initializer, found :" << let->getInitExpr()->getTypeName() << std::endl;
+                reportSemanticError("the type of let '"+ let->getType().getName() + "' must be the same as its Initializer, found :" + let->getInitExpr()->getTypeName());
             }
             }
             // does must body scope return the same type as the type of Let?? 
             // if (let->getType().getName() != let->getScopeExpr()->getTypeName()) {
-            //     std::cerr << "semantic error: the type of let '"<< let->getType().getName() << "' must be the same as its scope body, found :" << let->getInitExpr()->getTypeName() << std::endl;
+            //     reportSemanticError("the type of let '"+ let->getType().getName() + "' must be the same as its scope body, found :" + let->getInitExpr()->getTypeName());
             // }
 
             let->setTypeByName(let->getType().getName());
@@ -493,15 +494,15 @@ private:
         // Verify if the object identifier is declared and set its type
         else if (auto objIden = dynamic_cast<ObjectIdentifier*>(expr)) {
             std::string objType = symb_tab.lookup(objIden->getName());
-            // std::cout << "objType ----------> "<<objType<<std::endl;
-            // std::cout << "obobjIden->getName()jType ----------> "<<objIden->getName()<<std::endl;
+            // std::cout << "objType ----------> "+objType+std::end << std::end;
+            // std::cout << "obobjIden->getName()jType ----------> "+objIden->getName()+std::end << std::end;
             
             if(objType == "")
-                std::cout << "semantic error : the object '" << objIden->toString()<<"' is not defined in the scope." <<std::endl;
+                reportSemanticError("the object '" + objIden->toString()+"' is not defined in the scope.");
             else
                 objIden->setTypeByName(objType);
             
-            // std::cout << "objType agiµain ----------> "<<objIden->getTypeName()<<std::endl;
+            // std::cout << "objType agiµain ----------> "+objIden->getTypeName()+std::end << std::end;
             
         }
         //TODO
@@ -511,11 +512,11 @@ private:
         // Verify if the class being instantiated exists ..................... Done
         else if (auto newExpr = dynamic_cast<New*>(expr)) {
             // Verify if the class being instantiated exists
-            std::cout << "newExpr->getClassName() : " << newExpr->toString() <<std::endl;
+            // std::cout << "newExpr->getClassName() : " + newExpr->toString() << std::end;
             if (classMap.count(newExpr->getClassName()))
                 newExpr->setTypeByName(newExpr->getClassName());
             else
-                std::cerr << "semantic error : the class '" << newExpr->getTypeName() << "' does not exists to be instanciated." << std::endl;
+                reportSemanticError("the class '" + newExpr->getTypeName() + "' does not exists to be instanciated.");
         }
         //TODO this bellow is not clear
         else if (auto parenthesis = dynamic_cast<Parenthesis*>(expr)) {
@@ -523,13 +524,13 @@ private:
         }
         //TODO
         else {
-            std::cerr << "Error: Unknown expression type." << std::endl;
+            reportSemanticError("Unknown expression type.");
         }
     }
 
-    void reportSemanticError(std::string message,  unsigned int column, unsigned int line) {
+    void reportSemanticError(std::string message,  unsigned int column=0, unsigned int line=0) {
         std::cerr << fileName << ":" << line << ":" << column 
-                  << ": semantic error: "<< message << std::endl;
+                  << ": semantic error "<< message << std::endl;
         // exit(1); // Exit the program with an error code
     }
 };

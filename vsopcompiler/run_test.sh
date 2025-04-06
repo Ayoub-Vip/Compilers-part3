@@ -2,7 +2,7 @@
 
 make clean
 make
-# clear
+clear
 
 for file in tests/*; do
     echo "-----------------------" $file "------------------------------------"
