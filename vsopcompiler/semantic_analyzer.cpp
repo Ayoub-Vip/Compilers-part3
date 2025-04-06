@@ -27,10 +27,13 @@ public:
         }
 
     }
-    bool isAccepted = false;
+    bool isAccepted = true;
+    std::string fileName;
+    SemanticAnalyzer(std::string fileName) : fileName(std::move(fileName)) {}
+
+private:
     ClassNode* class_in_question = nullptr;
     MethodNode* method_in_question = nullptr;
-private:
     SymbolTable symb_tab = SymbolTable();
     std::unordered_map<std::string, ClassNode*> classMap; ///TODO to be curfull here
 
@@ -174,7 +177,8 @@ private:
 
         std::cout << "Checking field: " << field->getName() << std::endl;
         if (classMap.count(ftype) == 0)
-            std::cerr << "semantic error : class type" << ftype << "does not exist" << std::endl;
+        reportSemanticError("class type '"+ftype+"' does not exist", field->getColumn(), field->getLine());
+            std::cerr << "semantic error : class type '" << ftype << "' does not exist" << std::endl;
     }
     
     // if extending a parent class, must have the same methods args and return type (another type..)..... Done
@@ -231,7 +235,6 @@ private:
             }
         }
         
-        //TODO check expressions Scope and types
         checkExpression(method->getBlock());
 
         symb_tab.exitScope();
@@ -455,6 +458,9 @@ private:
         
         //TODO see vsop manual for let .. in
         else if (auto let = dynamic_cast<Let*>(expr)) {
+
+            //TODO determine in which on the scope
+            symb_tab.declare(let->getName(), let->getType().getName());
             checkExpression(let->getScopeExpr());
             
             if (let->getInitExpr()) {
@@ -469,6 +475,7 @@ private:
             // }
 
             let->setTypeByName(let->getType().getName());
+
         }
 
         // TODO 
@@ -518,5 +525,11 @@ private:
         else {
             std::cerr << "Error: Unknown expression type." << std::endl;
         }
+    }
+
+    void reportSemanticError(std::string message,  unsigned int column, unsigned int line) {
+        std::cerr << fileName << ":" << line << ":" << column 
+                  << ": semantic error: "<< message << std::endl;
+        // exit(1); // Exit the program with an error code
     }
 };
