@@ -530,7 +530,7 @@ private:
 
     void reportSemanticError(std::string message,  unsigned int column=0, unsigned int line=0) {
         std::cerr << fileName << ":" << line << ":" << column 
-                  << ": semantic error "<< message << std::endl;
+                  << ": semantic error: "<< message << std::endl;
         // exit(1); // Exit the program with an error code
     }
 };

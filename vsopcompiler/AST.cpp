@@ -317,7 +317,7 @@ std::string Expr::toString() const { return " ";}
 /**
 * Type - Represents a data type
 */
-Type::Type(const std::string &name) : type_name(name) {}
+Type::Type(const std::string &name) : type_name(name), column(0), line(0) {}
 
 /**
 * Returns the type name

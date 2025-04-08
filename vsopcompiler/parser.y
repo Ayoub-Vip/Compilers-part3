@@ -430,7 +430,7 @@ expr:
     
     /* Variable reference */
     | OBJECT_IDENTIFIER {
-        $$ = static_cast<Expr*>(new ObjectIdentifier(yylval.loc.str, yylval.loc.column, yylval.loc.line));
+        $$ = static_cast<Expr*>(new ObjectIdentifier($1.str, $1.column, $1.line));
     }
     
     /* Self reference */

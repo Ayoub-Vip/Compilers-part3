@@ -26,14 +26,17 @@
  */
 class Type{
     private:
-        std::string type_name;
-        // Valid types include: "int32", "bool", "string", "unit"
+        std::string type_name; // Valid types include: "int32", "bool", "string", "unit"
+        unsigned int column;
+        unsigned int line;
     
     public:
-        Type(const std::string &name);
+        Type(const std::string &name) : column(0), line(0) {};
+        Type(const std::string &name, unsigned int column, unsigned int line) : type_name(name), column(column), line(line) {}
         
         std::string getName() const;
-        
+        unsigned int getColumn() const { return column; };
+        unsigned int getLine() const { return line; };        
         std::string toString() const;
         std::string toString2() { return toString(); };
 };
@@ -87,6 +90,7 @@ class Expr {
 class IntegerLiteral : public Expr {
     public:
         IntegerLiteral(int value);
+        IntegerLiteral(int value, unsigned int column, unsigned int line) : Expr(Type("int32"),column, line), value(value) {};
         int getValue() const;
         std::string toString() const override;
         std::string toString2() const override;
@@ -103,6 +107,7 @@ class IntegerLiteral : public Expr {
 class StringLiteral : public Expr {
     public:
         StringLiteral(const std::string &value);
+        StringLiteral(const std::string &value, unsigned int column, unsigned int line) : Expr(Type("string"),column, line), str(value) {};
         std::string getString() const;
         std::string toString() const override;
         std::string toString2() const override;
@@ -118,6 +123,7 @@ class StringLiteral : public Expr {
 class BooleanLiteral : public Expr {
     public:
         BooleanLiteral(bool value);
+        BooleanLiteral(bool value, unsigned int column, unsigned int line) : Expr(Type("bool"),column, line), value(value) {};
         bool getValue() const;
         std::string toString() const override;
         std::string toString2() const override;
@@ -365,7 +371,7 @@ class New : public Expr {
     public:
         New(std::string n);
         std::string toString() const override;
-        std::string toString2() const override;
+        std::string toString2()const override;
         std::string getClassName() const;
 
     private:
