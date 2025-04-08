@@ -32,13 +32,13 @@ class Type{
     
     public:
         Type(const std::string &name);
-        Type(const std::string &name, unsigned int column, unsigned int line) : type_name(name), column(column), line(line) {}
+        Type(const std::string &name, unsigned int column, unsigned int line);
         
         std::string getName() const;
         unsigned int getColumn() const { return column; };
         unsigned int getLine() const { return line; };        
         std::string toString() const;
-        std::string toString2() { return toString(); };
+        std::string toString2() const;
 };
 
 /**

@@ -67,7 +67,7 @@ private:
             }
             for (const std::string& s : {"int32", "bool", "string", "unit"}) {//TODO this is additional from my mind
                 if (s == cls->name)
-                reportSemanticError("Class cannot be named 'int32', 'bool', 'string', or 'unit'.");
+                reportSemanticError("Class cannot be named 'int32', 'bool', 'string', or 'unit'.", cls->getColumn(), cls->getLine());
                 continue;
             }
             classMap[cls->name] = cls.get();
@@ -82,7 +82,7 @@ private:
             auto cls = classMap[className];
             if (cls->parent != "" && classMap.find(cls->parent) != classMap.end()) {
                 if (isCyclic(cls->parent)) {
-                    reportSemanticError("Cyclic inheritance detected involving class " + className + ".");
+                    reportSemanticError("Cyclic inheritance detected, class " + className + " cannot extend child class ", cls->getColumn(), cls->getLine());
                     return true;
                 }
             }

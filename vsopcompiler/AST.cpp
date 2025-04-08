@@ -318,6 +318,8 @@ std::string Expr::toString() const { return " ";}
 * Type - Represents a data type
 */
 Type::Type(const std::string &name) : type_name(name), column(0), line(0) {}
+Type::Type(const std::string &name, unsigned int column, unsigned int line) : type_name(name), column(column), line(line) {}
+
 
 /**
 * Returns the type name
@@ -328,8 +330,10 @@ std::string Type::getName() const { return type_name; }
 * Returns a string representation of the type
 */
 std::string Type::toString() const {
-   return  type_name;
+   return type_name;
 }
+std::string Type::toString2() const { return type_name; };
+
 /*====================================================================== */
 
 /*=========================== Let =========================================== */
