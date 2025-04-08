@@ -31,7 +31,7 @@ class Type{
         unsigned int line;
     
     public:
-        Type(const std::string &name) : column(0), line(0) {};
+        Type(const std::string &name);
         Type(const std::string &name, unsigned int column, unsigned int line) : type_name(name), column(column), line(line) {}
         
         std::string getName() const;
