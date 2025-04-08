@@ -347,10 +347,10 @@ SINGLE_COMMENT "//"[^\n]*
     if(lexer_debug_mode) {
         std::cout << "\"" << std::endl;
         // std::cout << "Envoi du token STR avec valeur : " << string_buffer << std::endl;
-    yylval.str = strdup(string_buffer.c_str());
     // yylval.loc.line = yyline;
     // yylval.loc.column = yycolumn;
     }
+    yylval.str = strdup(string_buffer.c_str());
 
     yycolumn += yyleng;
     BEGIN(INITIAL);
