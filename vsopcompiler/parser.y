@@ -577,11 +577,11 @@ int main(int argc, char **argv) {
                 }
             } else {
                 std::cerr << "Error: AST is empty!" << std::endl;
-                return EXIT_SUCCESS;
+                return EXIT_FAILURE;
             }
         } else {
             std::cerr << "Parsing Error!" << std::endl;
-            return EXIT_SUCCESS;
+            return EXIT_FAILURE;
         }
     } else if (strcmp(argv[1], "-l") == 0) {
         // Lexical analysis mode only

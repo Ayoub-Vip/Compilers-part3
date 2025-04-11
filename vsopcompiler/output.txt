@@ -1,25 +1,22 @@
-Tests run on Tue Apr  8 19:34:06 UTC 2025
+Tests run on Fri Apr 11 19:02:05 UTC 2025
 
 Decompressing your archive...
-tar: vsopcompiler/lexer.o: time stamp 2025-04-08 19:53:47 is 1180.893786768 s in the future
-tar: vsopcompiler/parser.o: time stamp 2025-04-08 19:53:47 is 1180.886370808 s in the future
-tar: vsopcompiler/vsopc: time stamp 2025-04-08 19:53:47 is 1180.880894148 s in the future
-tar: vsopcompiler/AST.o: time stamp 2025-04-08 19:53:45 is 1178.877947709 s in the future
-tar: vsopcompiler/parser.cpp: time stamp 2025-04-08 19:53:46 is 1179.876436957 s in the future
-tar: vsopcompiler/parser.output: time stamp 2025-04-08 19:53:45 is 1178.876145134 s in the future
-tar: vsopcompiler/lexer.cpp: time stamp 2025-04-08 19:53:47 is 1180.874955491 s in the future
-tar: vsopcompiler/parser.hpp: time stamp 2025-04-08 19:53:46 is 1179.874826791 s in the future
-tar: vsopcompiler/AST.cpp: time stamp 2025-04-08 19:53:36 is 1169.874631592 s in the future
-tar: vsopcompiler/AST.hpp: time stamp 2025-04-08 19:53:17 is 1150.874503042 s in the future
-tar: vsopcompiler: time stamp 2025-04-08 19:53:47 is 1180.874371347 s in the future
+tar: vsopcompiler/semantic_analyzer.cpp: time stamp 2025-04-11 19:18:44 is 998.191767728 s in the future
+tar: vsopcompiler: time stamp 2025-04-11 19:21:35 is 1169.189925496 s in the future
 Entering vsopcompiler folder...
 Installing build tools...
 If this fails because of an invalid Realease file in the future, please tell us about it !
 nothing to do
 Building your VSOP compiler...
-make: Warning: File 'vsopc' has modification time 1180 s in the future
-make: 'vsopc' is up to date.
-make: warning:  Clock skew detected.  Your build may be incomplete.
+g++ -std=c++17 -Wall -Wextra -I. -c AST.cpp -o AST.o
+bison -d -v -o parser.cpp parser.y
+g++ -std=c++17 -Wall -Wextra -I. -c parser.cpp -o parser.o
+flex -o lexer.cpp lexer.l
+g++ -std=c++17 -Wall -Wextra -I. -c lexer.cpp -o lexer.o
+lexer.cpp:1664:17: warning: 'void yyunput(int, char*)' defined but not used [-Wunused-function]
+ 1664 |     static void yyunput (int c, char * yy_bp )
+      |                 ^~~~~~~
+g++ -std=c++17 -Wall -Wextra -I. -o vsopc AST.o parser.o lexer.o
 Your VSOP compiler seems to have been built successfully. We will now
 proceed to some basic conformance tests of your lexer.
 
@@ -104,169 +101,14 @@ the teaching assistant.
 Found tests folder. Testing *.vsop files inside it against reference compiler.
 
 Entering vsopcompiler/tests...
-fact.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class Main {
-    factorial(n : int32) : int32 {
-        if n <= 2 then 1
-        else n * factorial(n - 1)
-    }
-
-    main() : int32 {
-        print("Enter an integer greater-than or equal to 0: ");
-        let n : int32 <- inputInt32() in
-        if n < 0 then {
-            print("Error: number must be greater-than or equal to 0.\n");
-            -1
-        } else {
-            print("The factorial of ").printInt32(n).print(" is ");
-            printInt32(factorial(n)).print("\n");
-            0
-        }
-    }
-}----------------- 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(Main, Object, [], 
-	[Method(factorial, [n : int32], int32, 
-	[If(BinOp(<=, n, 2), 1, BinOp(*, n, Call(self, factorial, [BinOp(-, n, 1)])))]), Method(main, [], int32, 
-	[Call(self, print, ["print"]), Let(n, int32, Call(self, inputInt32, []), If(BinOp(<, n, 0), 
-	[Call(self, print, ["print"]), UnOp(-, 1)], 
-	[Call(Call(Call(self, print, ["print"]), printInt32, [n]), print, ["print"]), Call(Call(self, printInt32, [Call(self, factorial, [n])]), print, ["print"]), 0]))])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(Main, Object, [],
-   [Method(factorial, [n : int32], int32,
-      [If(BinOp(<=, n, 2), 1,
-         BinOp(*, n, Call(self, factorial, [BinOp(-, n, 1)])))]),
-    Method(main, [], int32,
-      [Call(self, print, ["Enter an integer greater-than or equal to 0: "]),
-       Let(n, int32, Call(self, inputInt32, []),
-         If(BinOp(<, n, 0),
-           [Call(self, print,
-              ["Error: number must be greater-than or equal to 0.\x0a"]),
-            UnOp(-, 1)],
-           [Call(
-              Call(Call(self, print, ["The factorial of "]), printInt32, [n]),
-              print, [" is "]),
-            Call(Call(self, printInt32, [Call(self, factorial, [n])]), print,
-              ["\x0a"]),
-            0]))])])]
------------------ 8< -----------------
-
+fact.vsop... PASS
 keys.vsop... PASS
-statement_ex.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class List {
-    isNil() : bool { true }
-    length() : int32 { 0 }
-}
-(* Nil is nothing more than a glorified alias to List *)
-class Nil extends List { }
-
-class Cons extends List {
-    head : int32;
-    tail : List;
-    init(hd : int32, tl : List) : Cons {
-        head <- hd;
-        tail <- tl;
-        self
-    }
-
-    head() : int32 { head }
-    isNil() : bool { false }
-    length() : int32 { 1 + tail.length() }
-}
-class Main {
-    main() : int32 {
-        let xs : List <- (new Cons).init(0, (new Cons).init(
-        1, (new Cons).init(
-        2, new Nil))) in {
-            print("List has length ");
-            printInt32(xs.length());
-            print("\n");
-            0
-        }
-    }
-}----------------- 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(List, Object, [], 
-	[Method(isNil, [], bool, 
-	[true]), Method(length, [], int32, 
-	[0])]), 
-Class(Nil, List, [], []), 
-Class(Cons, List, [Field(head, int32), Field(tail, List)], 
-	[Method(init, [hd : int32, tl : List], Cons, 
-	[Assign(head, hd), Assign(tail, tl), self]), Method(head, [], int32, 
-	[head]), Method(isNil, [], bool, 
-	[false]), Method(length, [], int32, 
-	[BinOp(+, 1, Call(tail, length, []))])]), 
-Class(Main, Object, [], 
-	[Method(main, [], int32, 
-	[Let(xs, List, Call(New(Cons), init, [0, Call(New(Cons), init, [1, Call(New(Cons), init, [2, New(Nil)])])]), 
-	[Call(self, print, ["print"]), Call(self, printInt32, [Call(xs, length, [])]), Call(self, print, ["print"]), 0])])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(List, Object, [],
-   [Method(isNil, [], bool, [true]), Method(length, [], int32, [0])]),
- Class(Nil, List, [], []),
- Class(Cons, List, [Field(head, int32), Field(tail, List)],
-   [Method(init, [hd : int32, tl : List], Cons,
-      [Assign(head, hd), Assign(tail, tl), self]),
-    Method(head, [], int32, [head]), Method(isNil, [], bool, [false]),
-    Method(length, [], int32, [BinOp(+, 1, Call(tail, length, []))])]),
- Class(Main, Object, [],
-   [Method(main, [], int32,
-      [Let(xs, List,
-         Call(New(Cons), init,
-           [0,
-            Call(New(Cons), init, [1, Call(New(Cons), init, [2, New(Nil)])])]),
-         [Call(self, print, ["List has length "]),
-          Call(self, printInt32, [Call(xs, length, [])]),
-          Call(self, print, ["\x0a"]), 0])])])]
------------------ 8< -----------------
-
+statement_ex.vsop... PASS
 test2.vsop... PASS
 test3.vsop... PASS
 test4.vsop... PASS
 test5.vsop... PASS
-test6.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class C {
-    i : int32 <- { print("Initializing i"); 42 }; // This is valid
-}----------------- 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(C, Object, [Field(i, int32, 
-	[Call(self, print, ["print"]), 42])], [])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(C, Object,
-   [Field(i, int32, [Call(self, print, ["Initializing i"]), 42])], [])]
------------------ 8< -----------------
-
+test6.vsop... PASS
 test7.vsop... PASS
 test8.vsop... PASS
 testArgsNotClosed.vsop... PASS
@@ -274,85 +116,7 @@ testCyclicInhiretence.vsop... PASS
 testInvalidType.vsop... PASS
 testLET1.vsop... PASS
 testLET2.vsop... PASS
-testListExample.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class List {
-    isNil() : bool { true }
-    length() : int32 { 0 }
-}
-(* Nil is nothing more than a glorified alias to List *)
-class Nil extends List { }
-
-class Cons extends List {
-    head : int32;
-    tail : List;
-    init(hd : int32, tl : List) : Cons {
-        head <- hd;
-        tail <- tl;
-        self
-    }
-
-    head() : int32 { head }
-    isNil() : bool { false }
-    length() : int32 { 1 + tail.length() }
-}
-class Main {
-    main() : int32 {
-        let xs : List <- (new Cons).init(0, (new Cons).init(
-        1, (new Cons).init(
-        2, new Nil))) in {
-            print("List has length ");
-            printInt32(xs.length());
-            print("\n");
-            0
-        }
-    }
-}----------------- 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(List, Object, [], 
-	[Method(isNil, [], bool, 
-	[true]), Method(length, [], int32, 
-	[0])]), 
-Class(Nil, List, [], []), 
-Class(Cons, List, [Field(head, int32), Field(tail, List)], 
-	[Method(init, [hd : int32, tl : List], Cons, 
-	[Assign(head, hd), Assign(tail, tl), self]), Method(head, [], int32, 
-	[head]), Method(isNil, [], bool, 
-	[false]), Method(length, [], int32, 
-	[BinOp(+, 1, Call(tail, length, []))])]), 
-Class(Main, Object, [], 
-	[Method(main, [], int32, 
-	[Let(xs, List, Call(New(Cons), init, [0, Call(New(Cons), init, [1, Call(New(Cons), init, [2, New(Nil)])])]), 
-	[Call(self, print, ["print"]), Call(self, printInt32, [Call(xs, length, [])]), Call(self, print, ["print"]), 0])])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(List, Object, [],
-   [Method(isNil, [], bool, [true]), Method(length, [], int32, [0])]),
- Class(Nil, List, [], []),
- Class(Cons, List, [Field(head, int32), Field(tail, List)],
-   [Method(init, [hd : int32, tl : List], Cons,
-      [Assign(head, hd), Assign(tail, tl), self]),
-    Method(head, [], int32, [head]), Method(isNil, [], bool, [false]),
-    Method(length, [], int32, [BinOp(+, 1, Call(tail, length, []))])]),
- Class(Main, Object, [],
-   [Method(main, [], int32,
-      [Let(xs, List,
-         Call(New(Cons), init,
-           [0,
-            Call(New(Cons), init, [1, Call(New(Cons), init, [2, New(Nil)])])]),
-         [Call(self, print, ["List has length "]),
-          Call(self, printInt32, [Call(xs, length, [])]),
-          Call(self, print, ["\x0a"]), 0])])])]
------------------ 8< -----------------
-
+testListExample.vsop... PASS
 testMethodWithoutBody.vsop... PASS
 testWrongIF.vsop... PASS
 testWrongIF_ELSE.vsop... PASS
@@ -369,8 +133,8 @@ testWrongWHILE_WITHOUT8DO.vsop... PASS
 test_if.vsop... PASS
 test_if_else.vsop... PASS
 
-vsopcompiler/tests: passed 27 tests out of 31.
-Still some work to do!
+vsopcompiler/tests: passed 31 tests out of 31.
+Congratulations!
 
 Entering syntax-tests...
 01-empty-class.vsop... PASS
@@ -383,96 +147,12 @@ Entering syntax-tests...
 08-method-many-args.vsop... PASS
 09-field-and-method.vsop... PASS
 10-fields-and-methods-in-order.vsop... PASS
-11-fields-and-methods-interleaved.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class Test {
-    method1() : bool { false }
-    field1 : string <- "hello";
-    method2(s : string) : string { s }
-    field2 : int32 <- 42;
-}
------------------ 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(Test, Object, [Field(field1, string, "field1"), Field(field2, int32, 42)], 
-	[Method(method1, [], bool, 
-	[false]), Method(method2, [s : string], string, 
-	[s])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(Test, Object,
-   [Field(field1, string, "hello"), Field(field2, int32, 42)],
-   [Method(method1, [], bool, [false]),
-    Method(method2, [s : string], string, [s])])]
------------------ 8< -----------------
-
+11-fields-and-methods-interleaved.vsop... PASS
 12-simple-if-then.vsop... PASS
 13-simple-if-then-else.vsop... PASS
 14-dangling-else-1.vsop... PASS
 15-dangling-else-2.vsop... PASS
-16-imbricated-if-then-else.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class Test extends Parent {
-    f(c1 : bool, c2 : bool, c3 : bool) : string {
-        if c1 then
-            if c2 then
-                if c3 then {
-                    "c1 c2 c3"
-                } else {
-                    "c1 c2 !c3"
-                }
-            else {
-                if c3 then
-                    "c1 !c2 c3"
-                else
-                    "c1 !c2 !c3"
-            }
-        else
-            if c2 then {
-                if c3 then {
-                    "!c1 c2 c3" }
-                else
-                    "!c1 c2 !c3" }
-            else
-                if c3 then "!c1 !c2 c3" else "!c1 !c2 !c3"
-    }
-}
------------------ 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(Test, Parent, [], 
-	[Method(f, [c1 : bool, c2 : bool, c3 : bool], string, 
-	[If(c1, If(c2, If(c3, 
-	["c3"], 
-	["c3"]), 
-	[If(c3, "c3", "c3")]), If(c2, 
-	[If(c3, 
-	["c3"], "c3")], If(c3, "c3", "c3")))])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(Test, Parent, [],
-   [Method(f, [c1 : bool, c2 : bool, c3 : bool], string,
-      [If(c1,
-         If(c2, If(c3, ["c1 c2 c3"], ["c1 c2 !c3"]),
-           [If(c3, "c1 !c2 c3", "c1 !c2 !c3")]),
-         If(c2, [If(c3, ["!c1 c2 c3"], "!c1 c2 !c3")],
-           If(c3, "!c1 !c2 c3", "!c1 !c2 !c3")))])])]
------------------ 8< -----------------
-
+16-imbricated-if-then-else.vsop... PASS
 17-while.vsop... PASS
 18-let-uninitialized.vsop... PASS
 19-let-initialized.vsop... PASS
@@ -485,115 +165,11 @@ Here is the expected standard output:
 26-isnull.vsop... PASS
 27-calls.vsop... PASS
 28-mixed-calls.vsop... PASS
-29-block-init.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class C {
-    i : int32 <- { print("Initializing i"); 42 }; // This is valid
-}
------------------ 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(C, Object, [Field(i, int32, 
-	[Call(self, print, ["print"]), 42])], [])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(C, Object,
-   [Field(i, int32, [Call(self, print, ["Initializing i"]), 42])], [])]
------------------ 8< -----------------
-
+29-block-init.vsop... PASS
 30-new.vsop... PASS
-31-MyClass-example.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    s : string <- "One\n\x1b[33;mTwo and \
-                   three\r\n";
-    i : int32 <- 0x1b;
-}
------------------ 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(MyClass, Object, [Field(s, string, "s"), Field(i, int32, 27)], [])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(MyClass, Object,
-   [Field(s, string, "One\x0a\x1b[33;mTwo and three\x0d\x0a"),
-    Field(i, int32, 27)],
-   [])]
------------------ 8< -----------------
-
-32-factorial-example.vsop... FAIL
-
-Your compiler's output differs from expected output.
-
-Here is the input file:
------------------ 8< -----------------
-class Main {
-    factorial(n : int32) : int32 {
-        if n < 2 then 1
-        else n * factorial(n - 1)
-    }
-
-    main() : int32 {
-        print("Enter an integer greater-than or equal to 0: ");
-        let n : int32 <- inputInt32() in
-        if n < 0 then {
-            print("Error: number must be greater-than or equal to 0.\n");
-            -1
-        } else {
-            print("The factorial of ").printInt32(n).print(" is ");
-            printInt32(factorial(n)).print("\n");
-            0
-        }
-    }
-}
------------------ 8< -----------------
-
-Here is your program's (standard) output:
------------------ 8< -----------------
-[Class(Main, Object, [], 
-	[Method(factorial, [n : int32], int32, 
-	[If(BinOp(<, n, 2), 1, BinOp(*, n, Call(self, factorial, [BinOp(-, n, 1)])))]), Method(main, [], int32, 
-	[Call(self, print, ["print"]), Let(n, int32, Call(self, inputInt32, []), If(BinOp(<, n, 0), 
-	[Call(self, print, ["print"]), UnOp(-, 1)], 
-	[Call(Call(Call(self, print, ["print"]), printInt32, [n]), print, ["print"]), Call(Call(self, printInt32, [Call(self, factorial, [n])]), print, ["print"]), 0]))])])]
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(Main, Object, [],
-   [Method(factorial, [n : int32], int32,
-      [If(BinOp(<, n, 2), 1,
-         BinOp(*, n, Call(self, factorial, [BinOp(-, n, 1)])))]),
-    Method(main, [], int32,
-      [Call(self, print, ["Enter an integer greater-than or equal to 0: "]),
-       Let(n, int32, Call(self, inputInt32, []),
-         If(BinOp(<, n, 0),
-           [Call(self, print,
-              ["Error: number must be greater-than or equal to 0.\x0a"]),
-            UnOp(-, 1)],
-           [Call(
-              Call(Call(self, print, ["The factorial of "]), printInt32, [n]),
-              print, [" is "]),
-            Call(Call(self, printInt32, [Call(self, factorial, [n])]), print,
-              ["\x0a"]),
-            0]))])])]
------------------ 8< -----------------
-
-33-list-example.vsop... FAIL
+31-MyClass-example.vsop... PASS
+32-factorial-example.vsop... PASS
+33-list-example.vsop... PASS
 34-field-no-semicolon.vsop... PASS
 35-wrong-class-name.vsop... PASS
 36-field-misses-type.vsop... PASS
@@ -617,8 +193,8 @@ Here is the expected standard output:
 56-self-var.vsop... PASS
 57-assign-to-self.vsop... PASS
 
-syntax-tests: passed 49 tests out of 55.
-Still some work to do!
+syntax-tests: passed 55 tests out of 55.
+Congratulations!
 
 Now moving on to semantic analysis tests. Remember that exact error
 message locations are not checked, but only the occurrence of errors. If
@@ -662,14 +238,9 @@ class Main {
 
 Here is your program's error output:
 ----------------- 8< -----------------
-fact.vsop:8:9: semantic error: method 'print' not found in class hierarchy of 'main'.
-fact.vsop:11:13: semantic error: method 'print' not found in class hierarchy of 'main'.
-fact.vsop:14:13: semantic error: method 'print' not found in class hierarchy of 'main'.
-fact.vsop:14:40: semantic error: method 'printInt32' not found in class hierarchy of 'Undefined_return_type'.
-fact.vsop:14:54: semantic error: method 'print' not found in class hierarchy of 'Undefined_return_type'.
-fact.vsop:15:13: semantic error: method 'printInt32' not found in class hierarchy of 'main'.
-fact.vsop:15:38: semantic error: method 'print' not found in class hierarchy of 'Undefined_return_type'.
-fact.vsop:9:26: semantic error: method 'inputInt32' not found in class hierarchy of 'main'.
+fact.vsop:15:24: semantic error: method 'factorial' not found in class hierarchy of 'main'.
+fact.vsop:0:0: semantic error: method 'printInt32' expects argument of type 'int32', but got type 'Undefined_return_type'.
+fact.vsop:0:0: semantic error: method 'inputInt32' expects 1 argument, but 0 were provided.
 fact.vsop:9:13: semantic error: the type of let 'int32' must be the same as its Initializer, found :Undefined_return_type
 fact.vsop:4:18: semantic error: method 'factorial' not found in class hierarchy of 'factorial'.
 fact.vsop:0:0: semantic error: Binary operation requires int32 operands, but found *(int32,Undefined_return_type)
@@ -717,7 +288,8 @@ Here is the expected standard output:
 keys.vsop... PASS
 statement_ex.vsop... FAIL
 
-Your compiler detected an error, but input was valid.
+Your compiler exited with an error code (i.e. not zero), but no error
+message was printed to standard error.
 
 Here is the input file:
 ----------------- 8< -----------------
@@ -753,49 +325,6 @@ class Main {
         }
     }
 }----------------- 8< -----------------
-
-Here is your program's error output:
------------------ 8< -----------------
-statement_ex.vsop:26:13: semantic error: method 'print' not found in class hierarchy of 'main'.
-statement_ex.vsop:27:13: semantic error: method 'printInt32' not found in class hierarchy of 'main'.
-statement_ex.vsop:28:13: semantic error: method 'print' not found in class hierarchy of 'main'.
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(List, Object, [],
-   [Method(isNil, [], bool, [true : bool] : bool),
-    Method(length, [], int32, [0 : int32] : int32)]),
- Class(Nil, List, [], []),
- Class(Cons, List, [Field(head, int32), Field(tail, List)],
-   [Method(init, [hd : int32, tl : List], Cons,
-      [Assign(head, hd : int32) : int32, Assign(tail, tl : List) : List, self
-       : Cons]
-      : Cons),
-    Method(head, [], int32, [head : int32] : int32),
-    Method(isNil, [], bool, [false : bool] : bool),
-    Method(length, [], int32,
-      [BinOp(+, 1 : int32, Call(tail : List, length, []) : int32) : int32]
-      : int32)]),
- Class(Main, Object, [],
-   [Method(main, [], int32,
-      [Let(xs, List,
-         Call(New(Cons) : Cons, init,
-           [0 : int32,
-            Call(New(Cons) : Cons, init,
-              [1 : int32,
-               Call(New(Cons) : Cons, init, [2 : int32, New(Nil) : Nil])
-               : Cons])
-            : Cons])
-         : Cons,
-         [Call(self : Main, print, ["List has length " : string]) : Object,
-          Call(self : Main, printInt32, [Call(xs : List, length, []) : int32])
-          : Object, Call(self : Main, print, ["\x0a" : string]) : Object, 0
-          : int32]
-         : int32)
-       : int32]
-      : int32)])]
------------------ 8< -----------------
 
 test2.vsop... PASS
 test3.vsop... PASS
@@ -811,7 +340,8 @@ testLET1.vsop... PASS
 testLET2.vsop... PASS
 testListExample.vsop... FAIL
 
-Your compiler detected an error, but input was valid.
+Your compiler exited with an error code (i.e. not zero), but no error
+message was printed to standard error.
 
 Here is the input file:
 ----------------- 8< -----------------
@@ -847,49 +377,6 @@ class Main {
         }
     }
 }----------------- 8< -----------------
-
-Here is your program's error output:
------------------ 8< -----------------
-testListExample.vsop:26:13: semantic error: method 'print' not found in class hierarchy of 'main'.
-testListExample.vsop:27:13: semantic error: method 'printInt32' not found in class hierarchy of 'main'.
-testListExample.vsop:28:13: semantic error: method 'print' not found in class hierarchy of 'main'.
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(List, Object, [],
-   [Method(isNil, [], bool, [true : bool] : bool),
-    Method(length, [], int32, [0 : int32] : int32)]),
- Class(Nil, List, [], []),
- Class(Cons, List, [Field(head, int32), Field(tail, List)],
-   [Method(init, [hd : int32, tl : List], Cons,
-      [Assign(head, hd : int32) : int32, Assign(tail, tl : List) : List, self
-       : Cons]
-      : Cons),
-    Method(head, [], int32, [head : int32] : int32),
-    Method(isNil, [], bool, [false : bool] : bool),
-    Method(length, [], int32,
-      [BinOp(+, 1 : int32, Call(tail : List, length, []) : int32) : int32]
-      : int32)]),
- Class(Main, Object, [],
-   [Method(main, [], int32,
-      [Let(xs, List,
-         Call(New(Cons) : Cons, init,
-           [0 : int32,
-            Call(New(Cons) : Cons, init,
-              [1 : int32,
-               Call(New(Cons) : Cons, init, [2 : int32, New(Nil) : Nil])
-               : Cons])
-            : Cons])
-         : Cons,
-         [Call(self : Main, print, ["List has length " : string]) : Object,
-          Call(self : Main, printInt32, [Call(xs : List, length, []) : int32])
-          : Object, Call(self : Main, print, ["\x0a" : string]) : Object, 0
-          : int32]
-         : int32)
-       : int32]
-      : int32)])]
------------------ 8< -----------------
 
 testMethodWithoutBody.vsop... PASS
 testWrongIF.vsop... PASS
@@ -1039,7 +526,7 @@ class Main { main() : int32 { 0 } }
 63-field-wrong-type-block.vsop... FAIL
 64-method-if-no-else.vsop... FAIL
 65-method-while-wrong-type.vsop... FAIL
-66-method-pow-wrong-operand.vsop... FAIL
+66-method-pow-wrong-operand.vsop... PASS
 67-method-unknown-method.vsop... PASS
 68-method-arg-redef.vsop... PASS
 69-field-in-field.vsop... FAIL
@@ -1048,13 +535,13 @@ class Main { main() : int32 { 0 } }
 72-wrong-main-args.vsop... PASS
 73-wrong-main-type.vsop... PASS
 74-static-vs-dynamic.vsop... PASS
-75-method-invalid-block.vsop... FAIL
+75-method-invalid-block.vsop... PASS
 76-main-in-other-class.vsop... FAIL
 77-declaration-order.vsop... FAIL
 78-field-after-method.vsop... FAIL
 79-another-cycle.vsop... PASS
 
-semantic-eval-tests: passed 14 tests out of 79.
+semantic-eval-tests: passed 16 tests out of 79.
 Still some work to do!
 Additional semantic tests (ungraded)
 
@@ -1211,7 +698,7 @@ class Main { main() : int32 { 0 } }
 090-field-wrong-type-block.vsop... FAIL
 091-method-type.vsop... FAIL
 092-method.vsop... FAIL
-093-method-if-mismatch.vsop... FAIL
+093-method-if-mismatch.vsop... PASS
 094-method-if-wrong-cond.vsop... PASS
 095-method-if-wrong-type.vsop... FAIL
 096-method-while-wrong-cond.vsop... PASS
@@ -1231,28 +718,28 @@ class Main { main() : int32 { 0 } }
 110-method-and-wrong-operand.vsop... PASS
 111-method-and-wrong-operand.vsop... PASS
 112-method-and-wrong-type.vsop... FAIL
-113-method-lt-wrong-operand.vsop... FAIL
+113-method-lt-wrong-operand.vsop... PASS
 114-method-lt-wrong-operand.vsop... PASS
 115-method-lt-wrong-type.vsop... FAIL
-116-method-le-wrong-operand.vsop... FAIL
+116-method-le-wrong-operand.vsop... PASS
 117-method-le-wrong-operand.vsop... PASS
 118-method-le-wrong-type.vsop... FAIL
-119-method-add-wrong-operand.vsop... FAIL
+119-method-add-wrong-operand.vsop... PASS
 120-method-add-wrong-operand.vsop... PASS
 121-method-add-wrong-type.vsop... FAIL
-122-method-sub-wrong-operand.vsop... FAIL
+122-method-sub-wrong-operand.vsop... PASS
 123-method-sub-wrong-operand.vsop... PASS
 124-method-sub-wrong-type.vsop... FAIL
-125-method-mul-wrong-operand.vsop... FAIL
+125-method-mul-wrong-operand.vsop... PASS
 126-method-mul-wrong-operand.vsop... PASS
 127-method-mul-wrong-type.vsop... FAIL
-128-method-div-wrong-operand.vsop... FAIL
+128-method-div-wrong-operand.vsop... PASS
 129-method-div-wrong-operand.vsop... PASS
 130-method-div-wrong-type.vsop... FAIL
 131-method-pow-wrong-operand.vsop... PASS
 132-method-pow-wrong-type.vsop... FAIL
 133-method-call-arity.vsop... PASS
-134-method-call-wrong-arg.vsop... FAIL
+134-method-call-wrong-arg.vsop... PASS
 135-method-call-wrong-type.vsop... FAIL
 136-method-new-wrong-type.vsop... FAIL
 137-method-new-wrong-type.vsop... FAIL
@@ -1269,5 +756,5 @@ class Main { main() : int32 { 0 } }
 148-field-invalid-block.vsop... FAIL
 149-return-child.vsop... FAIL
 
-semantic-other-tests: passed 21 tests out of 149.
+semantic-other-tests: passed 29 tests out of 149.
 Still some work to do!
