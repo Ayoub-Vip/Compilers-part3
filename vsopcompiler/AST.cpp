@@ -504,7 +504,7 @@ std::vector<std::unique_ptr<Expr>>& Call::getArgs() {
 */
 ObjectIdentifier::ObjectIdentifier(std::string n) : name(std::move(n)) {}
 ObjectIdentifier::ObjectIdentifier(std::string n, unsigned int column, unsigned int line)
-    : Expr(column, line), name(std::move(n)) {}
+    : Expr(Type(std::move(n)), column, line), name(std::move(n)) {}
 /**
 * Returns a string representation of the identifier
 */
@@ -527,7 +527,7 @@ std::string ObjectIdentifier::getName() const {
 /**
 * Self - Represents the "self" keyword
 */
-Self::Self(std::string n) : name_self(std::move(n)) {}
+Self::Self(std::string n) : Expr(std::move(n)), name_self(std::move(n)) {}
 
 /**
 * Returns a string representation of self

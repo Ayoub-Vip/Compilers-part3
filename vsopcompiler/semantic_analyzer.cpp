@@ -360,6 +360,7 @@ private:
             MethodNode* method = nullptr;
 
             //calling a method inside the same class ==> self, omit checking class existance
+            checkExpression(call->getExprObjectIdentifier());
             if (call->getClassName() == "self"){ //NOTE class_in_question is updated in 'checkClass'
                 for (const auto& mt : class_in_question->getMethods()) {
                     if (mt->getName() == call->getMethodName()) {
@@ -569,7 +570,7 @@ private:
         }
         //TODO
         else if (auto self = dynamic_cast<Self*>(expr)) {
-            self->setTypeByName(method_in_question->getName());
+            self->setTypeByName(class_in_question->name);
         }
         // Verify if the class being instantiated exists ..................... Done
         else if (auto newExpr = dynamic_cast<New*>(expr)) {
