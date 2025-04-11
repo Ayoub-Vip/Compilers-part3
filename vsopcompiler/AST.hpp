@@ -79,7 +79,10 @@ class Expr {
         std::string getTypeName() const { return type.getName(); };
         void setTypeByName(std::string t) { type = Type(t); };
         void setType(const Type& t) { type = t; };
-    
+        unsigned int getColumn() const { return column; };
+        unsigned int getLine() const { return line; };
+        void setColumn(unsigned int col) { column = col; };
+        void setLine(unsigned int yyline) { line = yyline; };
     
 };
 
@@ -237,6 +240,7 @@ public:
 class Let : public Expr {
     public:
         Let(std::string n, Type t, std::unique_ptr<Expr> expr = nullptr, std::unique_ptr<Expr> scope = nullptr);
+        Let(std::string n, Type t, unsigned int column, unsigned int line, std::unique_ptr<Expr> expr = nullptr, std::unique_ptr<Expr> scope = nullptr);
         std::string toString() const override;
         std::string toString2() const override { return toString(); };
         std::string getName() const;
@@ -259,6 +263,7 @@ class Let : public Expr {
 class Assign : public Expr{
     public:
         Assign(std::string n, std::unique_ptr<Expr> expr = nullptr);
+        Assign(std::string n, unsigned int column, unsigned int line,std::unique_ptr<Expr> expr = nullptr);
         std::string getName();
         Expr* getExpr() const;
         std::string toString() const override;
@@ -278,7 +283,7 @@ class UnOp : public Expr {
     public:
         UnOp(std::string op, std::unique_ptr<Expr> expr);
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
         std::string getOp();
         Expr* getExpr();
 
@@ -295,6 +300,8 @@ class UnOp : public Expr {
 class Call : public Expr {
     public:
         Call(std::string n, std::vector<std::unique_ptr<Expr>> args, std::unique_ptr<Expr> exprobject_ident);
+        Call(std::string n, std::vector<std::unique_ptr<Expr>> args, std::unique_ptr<Expr> exprobject_ident, 
+            unsigned int column, unsigned int line);
         std::string toString() const override;
         std::string toString2() const override { return toString(); };
         std::string getMethodName() const;
@@ -437,7 +444,7 @@ class MethodNode : public ASTNode {
 
             
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
         std::string getName() { return name; };
         Type getReturnType() { return returnType; };
         std::vector<std::unique_ptr<Formal>>& getFormals() { return formals; };
@@ -490,7 +497,7 @@ class ClassNode : public ASTNode{
         std::vector<std::unique_ptr<MethodNode>>& getMethods();
 
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
 };
 
 /* ============================ Program ================================ */
@@ -509,7 +516,7 @@ class Program : public ASTNode {
         std::vector<std::unique_ptr<ClassNode>>& getClasses();
         
         std::string toString() const override;
-        std::string toString2() const override { return toString(); };
+        std::string toString2() const override;
 
     private :
         std::vector<std::unique_ptr<ClassNode>> classes;

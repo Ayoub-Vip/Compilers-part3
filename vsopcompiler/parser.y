@@ -194,11 +194,11 @@ Method:
         }
         delete $3; // Freedom Memomry (Ayoub don't forget to free memory pleaaase ;) )
         
-        $$ = new MethodNode(std::string($1.str), Type($6), std::move(params), std::unique_ptr<Block>(static_cast<Block*>($7)));
+        $$ = new MethodNode(std::string($1.str), Type($6), std::move(params), std::unique_ptr<Block>(static_cast<Block*>($7)), $1.column, $1.line);
     }
     | OBJECT_IDENTIFIER LPAR RPAR COLON type block {
         // Method without parameters
-        $$ = new MethodNode(std::string($1.str), Type($5), std::unique_ptr<Block>(static_cast<Block*>($6)));
+        $$ = new MethodNode(std::string($1.str), Type($5), std::unique_ptr<Block>(static_cast<Block*>($6)), $1.column, $1.line);
     }
     | OBJECT_IDENTIFIER LPAR formals RPAR COLON type {
         // Error: Method declaration without implementation
@@ -335,7 +335,8 @@ expr:
     | LET OBJECT_IDENTIFIER COLON type ASSIGN expr IN expr {
         $$ = static_cast<Expr*>(new Let(
             std::string($2.str), 
-            Type($4), 
+            Type($4),
+            $2.column, $2.line,
             std::unique_ptr<Expr>(static_cast<Expr*>($6)), 
             std::unique_ptr<Expr>(static_cast<Expr*>($8))
         ));
@@ -352,7 +353,7 @@ expr:
     }
     /* Assignment */
     | OBJECT_IDENTIFIER ASSIGN expr {
-        $$ = static_cast<Expr*>(new Assign($1.str, std::unique_ptr<Expr>(static_cast<Expr*>($3))));
+        $$ = static_cast<Expr*>(new Assign($1.str, $1.column, $1.line, std::unique_ptr<Expr>(static_cast<Expr*>($3))));
     } 
     
     /* Unary Operations */ 
@@ -406,7 +407,8 @@ expr:
         $$ = static_cast<Expr*>(new Call(
         std::string($1.str),
         std::move(arguments),
-        std::unique_ptr<Expr>(new Self("self"))
+        std::unique_ptr<Expr>(new Self("self")),
+        $1.column, $1.line
     ));
     }
     | expr DOT OBJECT_IDENTIFIER LPAR args RPAR {
@@ -419,7 +421,8 @@ expr:
         $$ = static_cast<Expr*>(new Call(
             std::string($3.str),
             std::move(arguments),
-            std::unique_ptr<Expr>(static_cast<Expr*>($1))
+            std::unique_ptr<Expr>(static_cast<Expr*>($1)),
+            $3.column, $3.line
         ));
     } 
     
@@ -508,7 +511,7 @@ void yyerror(const char *s) {
 int main(int argc, char **argv) {
     // Check command line arguments
     if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " -p|-l <source_code_file>\n";
+        std::cerr << "Usage: " << argv[0] << " -p|-l|-c <source_code_file>\n";
         return 1;
     }
     
@@ -522,60 +525,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // Process based on the mode argument (-p or -l)
-    if(strcmp(argv[1], "-c") == 0) {
-        // Parse mode
+    // Process based on the mode argument (-p, -l, or -c)
+    if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "-p") == 0) {
         lexer_debug_mode = false;
         int token;
         
-        // First pass: we need to be sure that lexing is done withot errors
+        // First pass: ensure lexing is done without errors
         while ((token = yylex()) != 0) {
             if (token == ERROR) {
                 std::cerr << fileName << ":" << yylval.error_location.line_error << ":" 
                           << yylval.error_location.column_error << ": lexical error : " 
-                          << error_message <<  std::endl;
-                exit(1);
-            }
-        }
-        
-        // Second pass: syntactic analysis
-        yycolumn=1;yyline=1;
-        rewind(yyin);
-        if (!yyparse()) {
-            // Successful parsing
-            if (root) {
-                SemanticAnalyzer* analyzer = new SemanticAnalyzer(std::string(fileName));
-                analyzer->analyze(static_cast<Program*>(root.get()));
-                
-                if (analyzer->isAccepted)
-                    std::cout << root->toString2() << std::endl;
-                else
-                    return EXIT_FAILURE;
-            } else {
-                std::cerr << "Erreur: AST empty !" << std::endl;
-                return EXIT_SUCCESS;
-            }
-        } else {
-            std::cerr << "Parsing Error !" << std::endl;
-            return EXIT_SUCCESS;
-        }
-    } else if (strcmp(argv[1], "-l") == 0) {
-        // Lexical analysis mode only
-        lexer_debug_mode = true;
-        int token;
-        while ((token = yylex()) != 0) { } // don t need here to print anything, the printing is done on lexing ;) 
-    }
-    else if(strcmp(argv[1], "-p") == 0) {
-        // Parse mode
-        lexer_debug_mode = false;
-        int token;
-        
-        // First pass: we need to be sure that lexing is done withot errors
-        while ((token = yylex()) != 0) {
-            if (token == ERROR) {
-                std::cerr << fileName << ":" << yylval.error_location.line_error << ":" 
-                          << yylval.error_location.column_error << ": lexical error : " 
-                          << error_message <<  std::endl;
+                          << error_message << std::endl;
                 exit(1);
             }
         }
@@ -586,18 +546,50 @@ int main(int argc, char **argv) {
         if (!yyparse()) {
             // Successful parsing
             if (root) {
-                std::cout << root->toString2() << std::endl;
+                // Load Object.vsop and extend the AST
+                FILE* objectFile = fopen("Object.vsop", "r");
+                if (objectFile) {
+                    yyin = objectFile;
+                    yycolumn = 1; yyline = 1;
+                    if (!yyparse()) {
+                        // Successfully parsed Object.vsop
+                        fclose(objectFile);
+                    } else {
+                        std::cerr << "Error parsing Object.vsop!" << std::endl;
+                        fclose(objectFile);
+                        return EXIT_FAILURE;
+                    }
+                } else {
+                    std::cerr << "Error: Can't Open File Object.vsop" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                if (strcmp(argv[1], "-c") == 0) {
+                    SemanticAnalyzer* analyzer = new SemanticAnalyzer(std::string(fileName));
+                    analyzer->analyze(static_cast<Program*>(root.get()));
+                    
+                    if (analyzer->isAccepted)
+                        std::cout << root->toString2() << std::endl;
+                    else
+                        return EXIT_FAILURE;
+                } else if (strcmp(argv[1], "-p") == 0) {
+                    std::cout << root->toString2() << std::endl;
+                }
             } else {
-                std::cerr << "Erreur: AST empty !" << std::endl;
+                std::cerr << "Error: AST is empty!" << std::endl;
                 return EXIT_SUCCESS;
             }
         } else {
-            std::cerr << "Parsing Error !" << std::endl;
+            std::cerr << "Parsing Error!" << std::endl;
             return EXIT_SUCCESS;
         }
-    }
-     else {
-        std::cerr << "Strange Option: " << argv[1] << "\n Usage : " << argv[0] 
+    } else if (strcmp(argv[1], "-l") == 0) {
+        // Lexical analysis mode only
+        lexer_debug_mode = true;
+        int token;
+        while ((token = yylex()) != 0) { } // No need to print anything, printing is done during lexing
+    } else {
+        std::cerr << "Invalid Option: " << argv[1] << "\nUsage: " << argv[0] 
                   << " -l|-p|-c <source_code_file>\n";  
     }
     

@@ -304,6 +304,16 @@ std::string MethodNode::toString() const {
    return "Method(" + name + ", " + paramStr + ", " + returnType.toString() + ", " + bloc->toString() + ")";
 }
 
+std::string MethodNode::toString2() const {
+   std::string paramStr = "[";
+   for (size_t i = 0; i < formals.size(); ++i) {
+       paramStr += formals[i]->toString2();
+       if (i != formals.size() - 1) paramStr += ", ";
+   }
+   paramStr += "]";
+   return "Method(" + name + ", " + paramStr + ", " + returnType.toString2() + ", " + bloc->toString2() + ")";
+}
+
 /*====================================================================== */
 
 /*========================== Expr ===================================== */
@@ -342,6 +352,9 @@ std::string Type::toString2() const { return type_name; };
 */
 Let::Let(std::string n, Type t, std::unique_ptr<Expr> expr, std::unique_ptr<Expr> scope)
    : name(std::move(n)), type(std::move(t)), init_expr(std::move(expr)), scope_expr(std::move(scope)) {}
+
+Let::Let(std::string n, Type t, unsigned int column, unsigned int line, std::unique_ptr<Expr> expr, std::unique_ptr<Expr> scope)
+   : Expr(column, line), name(std::move(n)), type(std::move(t)), init_expr(std::move(expr)), scope_expr(std::move(scope)) {}
 
 /**
 * Returns a string representation of the let expression
@@ -386,6 +399,7 @@ Expr* Let::getScopeExpr() const {
 * Assign - Represents an assignment
 */
 Assign::Assign(std::string n, std::unique_ptr<Expr> exprs): name(std::move(n)), expr(std::move(exprs)){}
+Assign::Assign(std::string n, unsigned int column, unsigned int line, std::unique_ptr<Expr> exprs): Expr(column, line), name(std::move(n)), expr(std::move(exprs)){}
 
 /**
 * Returns the variable name being assigned to
@@ -422,6 +436,10 @@ std::string UnOp::toString() const {
    return "UnOp(" + op + ", " + expr->toString() + ")"; 
 }
 
+std::string UnOp::toString2() const {
+   return "UnOp(" + op + ", " + expr->toString2() + ")"; 
+}
+
 /**
 * Returns the operator
 */
@@ -443,7 +461,10 @@ Expr* UnOp::getExpr(){
 * Call - Represents a method call
 */
 Call::Call(std::string n, std::vector<std::unique_ptr<Expr>> args, std::unique_ptr<Expr> exprobject_ident)
-   : method_name(std::move(n)), args(std::move(args)), exprobject_ident(std::move(exprobject_ident)) {}
+   : Expr(), method_name(std::move(n)), args(std::move(args)), exprobject_ident(std::move(exprobject_ident)) {}
+Call::Call(std::string n, std::vector<std::unique_ptr<Expr>> args, std::unique_ptr<Expr> exprobject_ident, 
+           unsigned int column, unsigned int line)
+   : Expr(column, line), method_name(std::move(n)), args(std::move(args)), exprobject_ident(std::move(exprobject_ident)) {}
 
 /**
 * Returns the method name
@@ -616,6 +637,36 @@ std::string ClassNode::toString() const {
    return result;
 }
 
+std::string ClassNode::toString2() const {
+   int cpt = 0;
+   int f_size = fields.size();
+   int m_size = methods.size();
+   // std::cout << "Fiels : " << fields.size() << std::endl;
+   std::string result = "Class(" + name + ", " + parent + ", [";
+   
+   for (auto it = fields.rbegin(); it != fields.rend(); ++it ){
+       cpt++;
+       result += (*it)->toString2();
+       if(f_size-cpt>0)
+           result += ", ";
+   }
+
+   if(m_size) result += "], \n\t[";
+   else result += "], [";
+
+   cpt = 0;
+   for (auto it = methods.rbegin(); it != methods.rend(); ++it) {
+       cpt++;
+       result += (*it)->toString2();
+       if(m_size - cpt>0)
+           result += ", ";
+   }
+   result += "])";
+   
+   // std::cout<< "# methods : " << methods.size() << std::endl;
+   return result;
+}
+
 /**
 * Constructor for ClassNode
 */
@@ -732,6 +783,21 @@ std::string Program::toString() const {
    {
        cpt++;
        str += cls->toString();
+       if (C_size - cpt > 0) str += ", \n";
+       
+   }
+   str += "]";
+   return str;  
+}
+
+std::string Program::toString2() const {
+   int cpt = 0;
+   int C_size = classes.size();
+   std::string str = "[";
+   for (const auto& cls : classes)
+   {
+       cpt++;
+       str += cls->toString2();
        if (C_size - cpt > 0) str += ", \n";
        
    }
