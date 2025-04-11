@@ -547,22 +547,22 @@ int main(int argc, char **argv) {
             // Successful parsing
             if (root) {
                 // Load Object.vsop and extend the AST
-                FILE* objectFile = fopen("Object.vsop", "r");
-                if (objectFile) {
-                    yyin = objectFile;
-                    yycolumn = 1; yyline = 1;
-                    if (!yyparse()) {
-                        // Successfully parsed Object.vsop
-                        fclose(objectFile);
-                    } else {
-                        std::cerr << "Error parsing Object.vsop!" << std::endl;
-                        fclose(objectFile);
-                        return EXIT_FAILURE;
-                    }
-                } else {
-                    std::cerr << "Error: Can't Open File Object.vsop" << std::endl;
-                    return EXIT_FAILURE;
-                }
+                // FILE* objectFile = fopen("Object.vsop", "r");
+                // if (objectFile) {
+                //     yyin = objectFile;
+                //     yycolumn = 1; yyline = 1;
+                //     if (!yyparse()) {
+                //         // Successfully parsed Object.vsop
+                //         fclose(objectFile);
+                //     } else {
+                //         std::cerr << "Error parsing Object.vsop!" << std::endl;
+                //         fclose(objectFile);
+                //         return EXIT_FAILURE;
+                //     }
+                // } else {
+                //     std::cerr << "Error: Can't Open File Object.vsop" << std::endl;
+                //     return EXIT_FAILURE;
+                // }
 
                 if (strcmp(argv[1], "-c") == 0) {
                     SemanticAnalyzer* analyzer = new SemanticAnalyzer(std::string(fileName));

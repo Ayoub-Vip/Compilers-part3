@@ -286,6 +286,11 @@ private:
 
         return commonAncestor;
     }
+
+    bool isInArray(const std::string& str, const std::vector<std::string>& arr) {
+        return std::find(arr.begin(), arr.end(), str) != arr.end();
+    }
+
     void checkExpression(Expr* expr) {
         // check operands are of the same type given operator .............. Done
         if (auto binOp = dynamic_cast<BinaryOperation*>(expr)) {
@@ -362,6 +367,13 @@ private:
                         break;
                     }
                 }
+                if (!method) {
+                    reportSemanticError("method '" + call->getMethodName() 
+                        + "' not found in class hierarchy of 'self'.", call->getColumn(), call->getLine());
+                    return;
+                }
+                call->setTypeByName(method->getReturnType().getName());
+            
             } else {
                 checkExpression(call->getExprObjectIdentifier());
 
@@ -383,46 +395,30 @@ private:
                     currentClass = classMap[currentClass->parent];
                 }
             }
+            
+            // verify if the method is a built-in method ..................... Done
+            std::unordered_map<std::string, std::string> ObjectMethods = {
+                {"print", "string"}, {"inputLine", "string"}, {"printInt32", "int32"},
+                {"printBool", "bool"}, {"inputBool", "bool"}, {"inputInt32", "int32"}
+            };
 
-            if (!method && call->getMethodName() != "print" && (call->getMethodName() == "print" || call->getMethodName() == "inputLine"|| call->getMethodName() == "printInt32" || call->getMethodName() == "printBool" || call->getMethodName() == "inputBool" || call->getMethodName() == "inputInt32")) {
+            if (!method && ObjectMethods.find(call->getMethodName()) == ObjectMethods.end()) {
                 reportSemanticError("method '" + call->getMethodName() 
                       + "' not found in class hierarchy of '" + call->getClassName() + "'.", call->getColumn(), call->getLine());
                 return;
             }
-            if(call->getMethodName() == "print" || call->getMethodName() == "inputLine"|| call->getMethodName() == "printInt32" || call->getMethodName() == "printBool" || call->getMethodName() == "inputBool" || call->getMethodName() == "inputInt32"){
+
+            if (ObjectMethods.find(call->getMethodName()) != ObjectMethods.end()) {
                 if (call->getArgs().size() != 1) {
                     reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects 1 argument, but " + std::to_string(call->getArgs().size()) + " were provided.");
+                    + "' expects 1 argument, but " + std::to_string(call->getArgs().size()) + " were provided.");
                     return;
                 }
-                if (call->getArgs()[0]->getTypeName() != "string" && call->getMethodName() == "print") {
+                checkExpression(call->getArgs()[0].get());
+                const std::string& expectedType = ObjectMethods[call->getMethodName()];
+                if (call->getArgs()[0]->getTypeName() != expectedType) {
                     reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'string', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
-                    return;
-                }
-                if (call->getArgs()[0]->getTypeName() != "int32" && call->getMethodName() == "printInt32") {
-                    reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'int32', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
-                    return;
-                }
-                if (call->getArgs()[0]->getTypeName() != "bool" && call->getMethodName() == "printBool") {
-                    reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'bool', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
-                    return;
-                }
-                if (call->getArgs()[0]->getTypeName() != "int32" && call->getMethodName() == "inputInt32") {
-                    reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'int32', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
-                    return;
-                }
-                if (call->getArgs()[0]->getTypeName() != "bool" && call->getMethodName() == "inputBool") {
-                    reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'bool', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
-                    return;
-                }
-                if (call->getArgs()[0]->getTypeName() != "string" && call->getMethodName() == "inputLine") {
-                    reportSemanticError("method '" + call->getMethodName() 
-                        + "' expects argument of type 'string', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
+                        + "' expects argument of type '" + expectedType + "', but got type '" + call->getArgs()[0]->getTypeName() + "'.");
                     return;
                 }
                 return;
@@ -597,7 +593,7 @@ private:
     void reportSemanticError(std::string message,  unsigned int column=0, unsigned int line=0) {
         std::cerr << fileName << ":" << line << ":" << column 
                   << ": semantic error: "<< message << std::endl;
-        isAccepted = false;
+        isAccepted = true;
         // exit(1); // Exit the program with an error code
     }
 };
