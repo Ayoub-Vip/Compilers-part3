@@ -179,6 +179,15 @@ private:
         // check if the type is existing, ................................. Done
         // ex: { field : classA}, classA must be declared
         std::string ftype = field->getTypeName();
+        std::string initExprtype = "unit";
+
+        if(field->getInitExpr()){
+            checkExpression(field->getInitExpr().get());
+            initExprtype = field->getInitExpr()->getTypeName();
+        }
+        if (ftype != initExprtype) {
+            reportSemanticError("Field '" + field->getName() + "' type '" + ftype + "' does not match the initializer type '" + initExprtype + "'", field->getColumn(), field->getLine());
+        }
         // std::cout << "Field name: " << field->getName() << ", Field type: " << ftype << std::endl;
 
         for (const std::string& s : {"int32", "bool", "string", "unit"}) {
@@ -348,12 +357,10 @@ private:
                     cond->setTypeByName(first_ancestor);
                 }else if (then_type != else_type) {
                     reportSemanticError("semantic error: then and else branches must be of the same return types.");
-                }else{
-                    cond->setTypeByName(then_type);
                 }
-            }else{
-                cond->setTypeByName(then_type);
-            }  
+            }
+            cond->setTypeByName(then_type);
+              
         }
         // call method, verify recursively existence and signature ......... Done
         else if (auto call = dynamic_cast<Call*>(expr)) {
@@ -475,6 +482,8 @@ private:
                 + assign->getExpr()->getTypeName() 
                 + "' to variable '"+ assign->getName()
                 + "' of original type '" + symb_tab.lookup(assign->getName()), assign->getColumn(), assign->getLine());
+
+            assign->setTypeByName(assign->getExpr()->getTypeName());
 
         }
 

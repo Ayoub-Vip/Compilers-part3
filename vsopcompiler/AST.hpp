@@ -333,6 +333,7 @@ class FieldNode : public ASTNode {
         std::string toString2() const override;
         std::string getName() const;
         std::string getTypeName() {return type.getName(); };
+        std::unique_ptr<Expr>& getInitExpr() { return init_expr; };
         Type getType() const;
 };
 /*======================================================================= */
