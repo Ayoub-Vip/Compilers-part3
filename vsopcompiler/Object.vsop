@@ -4,9 +4,9 @@ class Object
     printBool(b: bool) : Object { (* print b on stdout, then return self *) }
     printInt32(i: int32) : Object { (* print i on stdout, then return self *) }
     inputLine() : string {
-(* read one line from stdin, return "" in case of error *) }
+(* read one line from stdin, return "" in case of error *) ""}
     inputBool() : bool {
-(* read one boolean value from stdin, exit with error message in case of error *) }
+(* read one boolean value from stdin, exit with error message in case of error *) true}
     inputInt32() : int32 {
-(* read one integer from stdin, exit with error message in case of error *) }
+(* read one integer from stdin, exit with error message in case of error *) 0}
 }

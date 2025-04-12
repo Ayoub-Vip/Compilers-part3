@@ -1,13 +1,15 @@
-Tests run on Fri Apr 11 19:02:05 UTC 2025
+Tests run on Sat Apr 12 13:35:17 UTC 2025
 
 Decompressing your archive...
-tar: vsopcompiler/semantic_analyzer.cpp: time stamp 2025-04-11 19:18:44 is 998.191767728 s in the future
-tar: vsopcompiler: time stamp 2025-04-11 19:21:35 is 1169.189925496 s in the future
+tar: vsopcompiler/tests/fact.vsop_tempo: time stamp 2025-04-12 13:37:31 is 133.826648205 s in the future
+tar: vsopcompiler/AST.cpp: time stamp 2025-04-12 13:37:49 is 151.82475395 s in the future
+tar: vsopcompiler: time stamp 2025-04-12 13:37:53 is 155.824402235 s in the future
 Entering vsopcompiler folder...
 Installing build tools...
 If this fails because of an invalid Realease file in the future, please tell us about it !
 nothing to do
 Building your VSOP compiler...
+make: Warning: File 'AST.cpp' has modification time 150 s in the future
 g++ -std=c++17 -Wall -Wextra -I. -c AST.cpp -o AST.o
 bison -d -v -o parser.cpp parser.y
 g++ -std=c++17 -Wall -Wextra -I. -c parser.cpp -o parser.o
@@ -17,6 +19,7 @@ lexer.cpp:1664:17: warning: 'void yyunput(int, char*)' defined but not used [-Wu
  1664 |     static void yyunput (int c, char * yy_bp )
       |                 ^~~~~~~
 g++ -std=c++17 -Wall -Wextra -I. -o vsopc AST.o parser.o lexer.o
+make: warning:  Clock skew detected.  Your build may be incomplete.
 Your VSOP compiler seems to have been built successfully. We will now
 proceed to some basic conformance tests of your lexer.
 
@@ -131,10 +134,23 @@ testWrongWHILE.vsop... PASS
 testWrongWHILE_2.vsop... PASS
 testWrongWHILE_WITHOUT8DO.vsop... PASS
 test_if.vsop... PASS
-test_if_else.vsop... PASS
+test_if_else.vsop... FAIL
 
-vsopcompiler/tests: passed 31 tests out of 31.
-Congratulations!
+An error was expected, but your compiler returned with 0, 
+indicating success.
+
+Here is the input file:
+----------------- 8< -----------------
+----------------- 8< -----------------
+
+Here is the expected error output:
+----------------- 8< -----------------
+test_if_else.vsop:1:1: syntax error.
+----------------- 8< -----------------
+
+
+vsopcompiler/tests: passed 30 tests out of 31.
+Still some work to do!
 
 Entering syntax-tests...
 01-empty-class.vsop... PASS
@@ -210,86 +226,11 @@ it to the teaching assistant.
 Found tests folder. Testing *.vsop files inside it against reference compiler.
 
 Entering vsopcompiler/tests...
-fact.vsop... FAIL
-
-Your compiler detected an error, but input was valid.
-
-Here is the input file:
------------------ 8< -----------------
-class Main {
-    factorial(n : int32) : int32 {
-        if n <= 2 then 1
-        else n * factorial(n - 1)
-    }
-
-    main() : int32 {
-        print("Enter an integer greater-than or equal to 0: ");
-        let n : int32 <- inputInt32() in
-        if n < 0 then {
-            print("Error: number must be greater-than or equal to 0.\n");
-            -1
-        } else {
-            print("The factorial of ").printInt32(n).print(" is ");
-            printInt32(factorial(n)).print("\n");
-            0
-        }
-    }
-}----------------- 8< -----------------
-
-Here is your program's error output:
------------------ 8< -----------------
-fact.vsop:15:24: semantic error: method 'factorial' not found in class hierarchy of 'main'.
-fact.vsop:0:0: semantic error: method 'printInt32' expects argument of type 'int32', but got type 'Undefined_return_type'.
-fact.vsop:0:0: semantic error: method 'inputInt32' expects 1 argument, but 0 were provided.
-fact.vsop:9:13: semantic error: the type of let 'int32' must be the same as its Initializer, found :Undefined_return_type
-fact.vsop:4:18: semantic error: method 'factorial' not found in class hierarchy of 'factorial'.
-fact.vsop:0:0: semantic error: Binary operation requires int32 operands, but found *(int32,Undefined_return_type)
------------------ 8< -----------------
-
-Here is the expected standard output:
------------------ 8< -----------------
-[Class(Main, Object, [],
-   [Method(factorial, [n : int32], int32,
-      [If(BinOp(<=, n : int32, 2 : int32) : bool, 1 : int32,
-         BinOp(*, n : int32,
-           Call(self : Main, factorial,
-             [BinOp(-, n : int32, 1 : int32) : int32])
-           : int32)
-         : int32)
-       : int32]
-      : int32),
-    Method(main, [], int32,
-      [Call(self : Main, print,
-         ["Enter an integer greater-than or equal to 0: " : string])
-       : Object,
-       Let(n, int32, Call(self : Main, inputInt32, []) : int32,
-         If(BinOp(<, n : int32, 0 : int32) : bool,
-           [Call(self : Main, print,
-              ["Error: number must be greater-than or equal to 0.\x0a"
-               : string])
-            : Object, UnOp(-, 1 : int32) : int32]
-           : int32,
-           [Call(
-              Call(Call(self : Main, print, ["The factorial of " : string])
-                : Object, printInt32, [n : int32])
-              : Object, print, [" is " : string])
-            : Object,
-            Call(
-              Call(self : Main, printInt32,
-                [Call(self : Main, factorial, [n : int32]) : int32])
-              : Object, print, ["\x0a" : string])
-            : Object, 0 : int32]
-           : int32)
-         : int32)
-       : int32]
-      : int32)])]
------------------ 8< -----------------
-
+fact.vsop... PASS
 keys.vsop... PASS
 statement_ex.vsop... FAIL
 
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
+Your compiler detected an error, but input was valid.
 
 Here is the input file:
 ----------------- 8< -----------------
@@ -325,6 +266,47 @@ class Main {
         }
     }
 }----------------- 8< -----------------
+
+Here is your program's error output:
+----------------- 8< -----------------
+statement_ex.vsop:22:5: semantic error: Method 'main' return type does not match the block return type'List'
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(List, Object, [],
+   [Method(isNil, [], bool, [true : bool] : bool),
+    Method(length, [], int32, [0 : int32] : int32)]),
+ Class(Nil, List, [], []),
+ Class(Cons, List, [Field(head, int32), Field(tail, List)],
+   [Method(init, [hd : int32, tl : List], Cons,
+      [Assign(head, hd : int32) : int32, Assign(tail, tl : List) : List, self
+       : Cons]
+      : Cons),
+    Method(head, [], int32, [head : int32] : int32),
+    Method(isNil, [], bool, [false : bool] : bool),
+    Method(length, [], int32,
+      [BinOp(+, 1 : int32, Call(tail : List, length, []) : int32) : int32]
+      : int32)]),
+ Class(Main, Object, [],
+   [Method(main, [], int32,
+      [Let(xs, List,
+         Call(New(Cons) : Cons, init,
+           [0 : int32,
+            Call(New(Cons) : Cons, init,
+              [1 : int32,
+               Call(New(Cons) : Cons, init, [2 : int32, New(Nil) : Nil])
+               : Cons])
+            : Cons])
+         : Cons,
+         [Call(self : Main, print, ["List has length " : string]) : Object,
+          Call(self : Main, printInt32, [Call(xs : List, length, []) : int32])
+          : Object, Call(self : Main, print, ["\x0a" : string]) : Object, 0
+          : int32]
+         : int32)
+       : int32]
+      : int32)])]
+----------------- 8< -----------------
 
 test2.vsop... PASS
 test3.vsop... PASS
@@ -340,8 +322,7 @@ testLET1.vsop... PASS
 testLET2.vsop... PASS
 testListExample.vsop... FAIL
 
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
+Your compiler detected an error, but input was valid.
 
 Here is the input file:
 ----------------- 8< -----------------
@@ -377,6 +358,47 @@ class Main {
         }
     }
 }----------------- 8< -----------------
+
+Here is your program's error output:
+----------------- 8< -----------------
+testListExample.vsop:22:5: semantic error: Method 'main' return type does not match the block return type'List'
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(List, Object, [],
+   [Method(isNil, [], bool, [true : bool] : bool),
+    Method(length, [], int32, [0 : int32] : int32)]),
+ Class(Nil, List, [], []),
+ Class(Cons, List, [Field(head, int32), Field(tail, List)],
+   [Method(init, [hd : int32, tl : List], Cons,
+      [Assign(head, hd : int32) : int32, Assign(tail, tl : List) : List, self
+       : Cons]
+      : Cons),
+    Method(head, [], int32, [head : int32] : int32),
+    Method(isNil, [], bool, [false : bool] : bool),
+    Method(length, [], int32,
+      [BinOp(+, 1 : int32, Call(tail : List, length, []) : int32) : int32]
+      : int32)]),
+ Class(Main, Object, [],
+   [Method(main, [], int32,
+      [Let(xs, List,
+         Call(New(Cons) : Cons, init,
+           [0 : int32,
+            Call(New(Cons) : Cons, init,
+              [1 : int32,
+               Call(New(Cons) : Cons, init, [2 : int32, New(Nil) : Nil])
+               : Cons])
+            : Cons])
+         : Cons,
+         [Call(self : Main, print, ["List has length " : string]) : Object,
+          Call(self : Main, printInt32, [Call(xs : List, length, []) : int32])
+          : Object, Call(self : Main, print, ["\x0a" : string]) : Object, 0
+          : int32]
+         : int32)
+       : int32]
+      : int32)])]
+----------------- 8< -----------------
 
 testMethodWithoutBody.vsop... PASS
 testWrongIF.vsop... PASS
@@ -394,104 +416,202 @@ testWrongWHILE_WITHOUT8DO.vsop... PASS
 test_if.vsop... PASS
 test_if_else.vsop... PASS
 
-vsopcompiler/tests: passed 28 tests out of 31.
+vsopcompiler/tests: passed 29 tests out of 31.
 Still some work to do!
 First, tests used for automated grading.
 
 Entering semantic-eval-tests...
-01-simplest-program.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-02-field-lit-bool.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    myField : bool <- true;
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-03-field-lit-string.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    veryOriginal : string <- "Hello, world!";
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-04-field-no-init-int32.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    myField : int32;
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-05-overridden-method.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class GrandParent {
-    i(j : int32) : int32 { j + 42 }
-}
-class Parent extends GrandParent {
-}
-class Child extends Parent {
-    i(j : int32) : int32 { j * 42 }
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
+01-simplest-program.vsop... PASS
+02-field-lit-bool.vsop... PASS
+03-field-lit-string.vsop... PASS
+04-field-no-init-int32.vsop... PASS
+05-overridden-method.vsop... PASS
 06-field-if-then.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : unit <- if true then ();
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, unit, If(true : bool, () : unit) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, unit, If(true : bool, () : unit) : unit)], []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 07-field-let.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : int32 <- let x : int32 <- 42 in x;
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, int32, Let(x, int32, 42 : int32, x : x): int32)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, int32, Let(x, int32, 42 : int32, x : int32) : int32)], [
+   ]),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 08-field-unary-minus.vsop... FAIL
-09-field-equal-int32.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : int32 <- let x : int32 <- 42 in -x;
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, int32, Let(x, int32, 42 : int32, UnOp(-, x : x) : Undefined_return_type): int32)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, int32,
+      Let(x, int32, 42 : int32, UnOp(-, x : int32) : int32) : int32)],
+   []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
+09-field-equal-int32.vsop... PASS
 10-field-equal-same-class.vsop... FAIL
-11-field-lt.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class A { }
+class MyClass {
+    myField : bool <- (new A) = (new A);
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(A, Object, [], []), 
+Class(MyClass, Object, [Field(myField, bool, BinOp(=, New(A) : , New(A) : ) : bool)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(A, Object, [], []),
+ Class(MyClass, Object,
+   [Field(myField, bool, BinOp(=, New(A) : A, New(A) : A) : bool)], [
+   ]),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
+11-field-lt.vsop... PASS
 12-field-call-args.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class A {
+    select(i : int32, j : int32, b : bool) : int32 {
+        if b then i
+        else j
+    }
+}
+class B {
+    getTheTruth() : bool { true }
+}
+class MyClass {
+    myField : int32 <- (new A).select(0, 42, (new B).getTheTruth());
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(A, Object, [], 
+	[Method(select, [i : int32, j : int32, b : bool], int32, 
+	[If(b : bool, i : int32, j : int32) : int32] : int32)]), 
+Class(B, Object, [], 
+	[Method(getTheTruth, [], bool, 
+	[true : bool] : bool)]), 
+Class(MyClass, Object, [Field(myField, int32, Call(New(A) : , select, [0 : int32, 42 : int32, Call(New(B) : , getTheTruth, []) : Undefined_return_type]) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(A, Object, [],
+   [Method(select, [i : int32, j : int32, b : bool], int32,
+      [If(b : bool, i : int32, j : int32) : int32] : int32)]),
+ Class(B, Object, [], [Method(getTheTruth, [], bool, [true : bool] : bool)]),
+ Class(MyClass, Object,
+   [Field(myField, int32,
+      Call(New(A) : A, select,
+        [0 : int32, 42 : int32, Call(New(B) : B, getTheTruth, []) : bool])
+      : int32)],
+   []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 13-field-new-direct.vsop... FAIL
 14-field-block.vsop... FAIL
-15-method-if.vsop... FAIL
-16-method-while.vsop... FAIL
+15-method-if.vsop... PASS
+16-method-while.vsop... PASS
 17-method-assign.vsop... FAIL
-18-method-isnull.vsop... FAIL
+18-method-isnull.vsop... PASS
 19-method-equal-bool.vsop... FAIL
-20-method-and.vsop... FAIL
-21-method-call-no-args.vsop... FAIL
-22-method-call-inherited.vsop... FAIL
+20-method-and.vsop... PASS
+21-method-call-no-args.vsop... PASS
+22-method-call-inherited.vsop... PASS
 23-method-new-indirect.vsop... FAIL
-24-method-local-var.vsop... FAIL
-25-method-class-var.vsop... FAIL
-26-method-parent-class-var.vsop... FAIL
-27-field-method-name.vsop... FAIL
-28-inheritance.vsop... FAIL
+24-method-local-var.vsop... PASS
+25-method-class-var.vsop... PASS
+26-method-parent-class-var.vsop... PASS
+27-field-method-name.vsop... PASS
+28-inheritance.vsop... PASS
 29-io.vsop... FAIL
 30-shadowing.vsop... FAIL
-31-factorial-example.vsop... FAIL
+31-factorial-example.vsop... PASS
 32-list-example.vsop... FAIL
 33-class-redef.vsop... PASS
 34-object-redef.vsop... PASS
@@ -525,7 +645,7 @@ class Main { main() : int32 { 0 } }
 62-field-wrong-type-var.vsop... FAIL
 63-field-wrong-type-block.vsop... FAIL
 64-method-if-no-else.vsop... FAIL
-65-method-while-wrong-type.vsop... FAIL
+65-method-while-wrong-type.vsop... PASS
 66-method-pow-wrong-operand.vsop... PASS
 67-method-unknown-method.vsop... PASS
 68-method-arg-redef.vsop... PASS
@@ -536,72 +656,23 @@ class Main { main() : int32 { 0 } }
 73-wrong-main-type.vsop... PASS
 74-static-vs-dynamic.vsop... PASS
 75-method-invalid-block.vsop... PASS
-76-main-in-other-class.vsop... FAIL
-77-declaration-order.vsop... FAIL
-78-field-after-method.vsop... FAIL
+76-main-in-other-class.vsop... PASS
+77-declaration-order.vsop... PASS
+78-field-after-method.vsop... PASS
 79-another-cycle.vsop... PASS
 
-semantic-eval-tests: passed 16 tests out of 79.
+semantic-eval-tests: passed 39 tests out of 79.
 Still some work to do!
 Additional semantic tests (ungraded)
 
 Entering semantic-other-tests...
-001-field-lit-bool.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    myField : bool <- false;
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-002-field-lit-int32.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    myField : int32 <- 42;
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-003-field-lit-unit.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    veryUseful : unit <- ();
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
-004-field-no-init-unit.vsop... FAIL
-
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
-
-Here is the input file:
------------------ 8< -----------------
-class MyClass {
-    veryUseful : unit;
-}
-class Main { main() : int32 { 0 } }
------------------ 8< -----------------
-
+001-field-lit-bool.vsop... PASS
+002-field-lit-int32.vsop... PASS
+003-field-lit-unit.vsop... PASS
+004-field-no-init-unit.vsop... PASS
 005-field-if.vsop... FAIL
 
-Your compiler exited with an error code (i.e. not zero), but no error
-message was printed to standard error.
+Your compiler's output differs from expected output.
 
 Here is the input file:
 ----------------- 8< -----------------
@@ -611,16 +682,152 @@ class MyClass {
 class Main { main() : int32 { 0 } }
 ----------------- 8< -----------------
 
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, int32, If(true : bool, 42 : int32, 0 : int32) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, int32, If(true : bool, 42 : int32, 0 : int32) : int32)],
+   []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 006-field-if.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : unit <- if true then () else ();
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, unit, If(true : bool, () : unit, () : unit) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, unit, If(true : bool, () : unit, () : unit) : unit)], [
+   ]),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 007-field-if.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class GrandParent {
+}
+class Parent extends GrandParent {
+}
+class Child extends Parent {
+}
+class MyClass {
+    myField : Parent <- if true then new Child else new Parent;
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(GrandParent, Object, [], []), 
+Class(Parent, GrandParent, [], []), 
+Class(Child, Parent, [], []), 
+Class(MyClass, Object, [Field(myField, Parent, If(true : bool, New(Child) : , New(Parent) : ) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(GrandParent, Object, [], []), Class(Parent, GrandParent, [], []),
+ Class(Child, Parent, [], []),
+ Class(MyClass, Object,
+   [Field(myField, Parent,
+      If(true : bool, New(Child) : Child, New(Parent) : Parent) : Parent)],
+   []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 008-field-while.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : unit <- while false do 42;
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, unit, While(false : bool, 42 : int32) : Undefined_return_type)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, unit, While(false : bool, 42 : int32) : unit)], []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 009-field-assign.vsop... FAIL
+
+Your compiler's output differs from expected output.
+
+Here is the input file:
+----------------- 8< -----------------
+class MyClass {
+    myField : int32 <- let x : int32 in x <- 42;
+}
+class Main { main() : int32 { 0 } }
+----------------- 8< -----------------
+
+Here is your program's (standard) output:
+----------------- 8< -----------------
+[Class(MyClass, Object, [Field(myField, int32, Let(x, int32, Assign(x, 42 : int32) : Undefined_return_type) : int32)], []), 
+Class(Main, Object, [], 
+	[Method(main, [], int32, 
+	[0 : int32] : int32)])]
+----------------- 8< -----------------
+
+Here is the expected standard output:
+----------------- 8< -----------------
+[Class(MyClass, Object,
+   [Field(myField, int32, Let(x, int32, Assign(x, 42 : int32) : int32)
+      : int32)],
+   []),
+ Class(Main, Object, [], [Method(main, [], int32, [0 : int32] : int32)])]
+----------------- 8< -----------------
+
 010-field-isnull.vsop... FAIL
 011-field-equal-bool.vsop... FAIL
-012-field-equal-string.vsop... FAIL
+012-field-equal-string.vsop... PASS
 013-field-equal-unit.vsop... FAIL
-014-field-and.vsop... FAIL
-015-field-le.vsop... FAIL
+014-field-and.vsop... PASS
+015-field-le.vsop... PASS
 016-field-call-no-args.vsop... FAIL
 017-field-call-one-arg.vsop... FAIL
 018-field-call-inherited.vsop... FAIL
@@ -629,32 +836,32 @@ class Main { main() : int32 { 0 } }
 021-field-local-var.vsop... FAIL
 022-field-block.vsop... FAIL
 023-field-block.vsop... FAIL
-024-method-lit-bool.vsop... FAIL
-025-method-lit-bool.vsop... FAIL
-026-method-lit-int32.vsop... FAIL
-027-method-lit-string.vsop... FAIL
-028-method-lit-unit.vsop... FAIL
-029-method-if-then.vsop... FAIL
-030-method-if.vsop... FAIL
-031-method-if.vsop... FAIL
-032-method-let.vsop... FAIL
-033-method-unary-minus.vsop... FAIL
-034-method-equal-int32.vsop... FAIL
+024-method-lit-bool.vsop... PASS
+025-method-lit-bool.vsop... PASS
+026-method-lit-int32.vsop... PASS
+027-method-lit-string.vsop... PASS
+028-method-lit-unit.vsop... PASS
+029-method-if-then.vsop... PASS
+030-method-if.vsop... PASS
+031-method-if.vsop... PASS
+032-method-let.vsop... PASS
+033-method-unary-minus.vsop... PASS
+034-method-equal-int32.vsop... PASS
 035-method-equal-string.vsop... FAIL
 036-method-equal-unit.vsop... FAIL
 037-method-equal-same-class.vsop... FAIL
-038-method-lt.vsop... FAIL
-039-method-le.vsop... FAIL
-040-method-call-one-arg.vsop... FAIL
-041-method-call-args.vsop... FAIL
-042-method-new-direct.vsop... FAIL
+038-method-lt.vsop... PASS
+039-method-le.vsop... PASS
+040-method-call-one-arg.vsop... PASS
+041-method-call-args.vsop... PASS
+042-method-new-direct.vsop... PASS
 043-method-new-indirect.vsop... FAIL
-044-method-block.vsop... FAIL
-045-method-block.vsop... FAIL
-046-method-block.vsop... FAIL
-047-MyClass.vsop... FAIL
+044-method-block.vsop... PASS
+045-method-block.vsop... PASS
+046-method-block.vsop... PASS
+047-MyClass.vsop... PASS
 048-undef-formal-type.vsop... FAIL
-049-undef-ret-type.vsop... FAIL
+049-undef-ret-type.vsop... PASS
 050-undef-let-type.vsop... PASS
 051-wrong-overridden-method.vsop... FAIL
 052-wrong-overridden-method.vsop... FAIL
@@ -696,65 +903,65 @@ class Main { main() : int32 { 0 } }
 088-field-wrong-type-var.vsop... FAIL
 089-field-wrong-type-block.vsop... FAIL
 090-field-wrong-type-block.vsop... FAIL
-091-method-type.vsop... FAIL
+091-method-type.vsop... PASS
 092-method.vsop... FAIL
 093-method-if-mismatch.vsop... PASS
 094-method-if-wrong-cond.vsop... PASS
-095-method-if-wrong-type.vsop... FAIL
+095-method-if-wrong-type.vsop... PASS
 096-method-while-wrong-cond.vsop... PASS
-097-method-let-wrong-type.vsop... FAIL
+097-method-let-wrong-type.vsop... PASS
 098-method-assign-unbound.vsop... PASS
 099-method-assign-wrong-type.vsop... PASS
-100-method-assign-wrong-type.vsop... FAIL
-101-method-uminus-wrong-operand.vsop... FAIL
-102-method-uminus-wrong-type.vsop... FAIL
+100-method-assign-wrong-type.vsop... PASS
+101-method-uminus-wrong-operand.vsop... PASS
+102-method-uminus-wrong-type.vsop... PASS
 103-method-isnull-wrong-operand.vsop... FAIL
-104-method-isnull-wrong-type.vsop... FAIL
+104-method-isnull-wrong-type.vsop... PASS
 105-method-equal-uncomparable.vsop... PASS
 106-method-equal-uncomparable.vsop... PASS
 107-method-equal-uncomparable.vsop... PASS
 108-method-equal-uncomparable.vsop... PASS
-109-method-equal-wrong-type.vsop... FAIL
+109-method-equal-wrong-type.vsop... PASS
 110-method-and-wrong-operand.vsop... PASS
 111-method-and-wrong-operand.vsop... PASS
-112-method-and-wrong-type.vsop... FAIL
+112-method-and-wrong-type.vsop... PASS
 113-method-lt-wrong-operand.vsop... PASS
 114-method-lt-wrong-operand.vsop... PASS
-115-method-lt-wrong-type.vsop... FAIL
+115-method-lt-wrong-type.vsop... PASS
 116-method-le-wrong-operand.vsop... PASS
 117-method-le-wrong-operand.vsop... PASS
-118-method-le-wrong-type.vsop... FAIL
+118-method-le-wrong-type.vsop... PASS
 119-method-add-wrong-operand.vsop... PASS
 120-method-add-wrong-operand.vsop... PASS
-121-method-add-wrong-type.vsop... FAIL
+121-method-add-wrong-type.vsop... PASS
 122-method-sub-wrong-operand.vsop... PASS
 123-method-sub-wrong-operand.vsop... PASS
-124-method-sub-wrong-type.vsop... FAIL
+124-method-sub-wrong-type.vsop... PASS
 125-method-mul-wrong-operand.vsop... PASS
 126-method-mul-wrong-operand.vsop... PASS
-127-method-mul-wrong-type.vsop... FAIL
+127-method-mul-wrong-type.vsop... PASS
 128-method-div-wrong-operand.vsop... PASS
 129-method-div-wrong-operand.vsop... PASS
-130-method-div-wrong-type.vsop... FAIL
+130-method-div-wrong-type.vsop... PASS
 131-method-pow-wrong-operand.vsop... PASS
-132-method-pow-wrong-type.vsop... FAIL
+132-method-pow-wrong-type.vsop... PASS
 133-method-call-arity.vsop... PASS
 134-method-call-wrong-arg.vsop... PASS
-135-method-call-wrong-type.vsop... FAIL
-136-method-new-wrong-type.vsop... FAIL
-137-method-new-wrong-type.vsop... FAIL
+135-method-call-wrong-type.vsop... PASS
+136-method-new-wrong-type.vsop... PASS
+137-method-new-wrong-type.vsop... PASS
 138-method-new-wrong-type.vsop... PASS
-139-method-wrong-type-var.vsop... FAIL
-140-method-wrong-type-var.vsop... FAIL
-141-method-wrong-type-var.vsop... FAIL
-142-method-wrong-type-block.vsop... FAIL
-143-method-wrong-type-block.vsop... FAIL
-144-method-wrong-type-block.vsop... FAIL
+139-method-wrong-type-var.vsop... PASS
+140-method-wrong-type-var.vsop... PASS
+141-method-wrong-type-var.vsop... PASS
+142-method-wrong-type-block.vsop... PASS
+143-method-wrong-type-block.vsop... PASS
+144-method-wrong-type-block.vsop... PASS
 145-method-arg-redef.vsop... PASS
 146-field-in-field.vsop... FAIL
 147-method-in-field.vsop... FAIL
 148-field-invalid-block.vsop... FAIL
 149-return-child.vsop... FAIL
 
-semantic-other-tests: passed 29 tests out of 149.
+semantic-other-tests: passed 82 tests out of 149.
 Still some work to do!

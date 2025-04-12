@@ -518,15 +518,71 @@ int main(int argc, char **argv) {
     fileName = argv[2];
     initialize_dict();
     
-    // Open the input file
-    yyin = fopen(argv[2], "r");
+    // Directly append the content of "Object.vsop" to the input file
+    std::string tempFileName = std::string(argv[2]) + "_tempo";
+    FILE* tempFile = fopen(tempFileName.c_str(), "w+"); // Open in write mode and truncate if it exists
+    if (!tempFile) {
+        std::cerr << "Error: Can't create temporary file " << tempFileName << std::endl;
+        return 1;
+    }
+
+    // Copy the content of the input file to the temporary file
+    FILE* inputFile = fopen(argv[2], "r");
+    if (!inputFile) {
+        std::cerr << "Error: Can't open file " << argv[2] << std::endl;
+        fclose(tempFile);
+        return 1;
+    }
+    char buffer[1024];
+    size_t bytesRead;
+    while ((bytesRead = fread(buffer, 1, sizeof(buffer), inputFile)) > 0) {
+        fwrite(buffer, 1, bytesRead, tempFile);
+    }
+    fclose(inputFile);
+
+    // Append the hardcoded content of "Object.vsop" to the temporary file
+    const char* objectVsopContent = R""(
+        class Object {
+            print(s : string) : Object { (* print s on stdout, then return self*) self}
+            printBool(b: bool) : Object { (* print b on stdout, then return self *) self}
+            printInt32(i: int32) : Object { (* print i on stdout, then return self *) self}
+            inputLine() : string {
+                (* read one line from stdin, return "" in case of error *) ""}
+            inputBool() : bool {
+                (* read one boolean value from stdin, exit with error message in case of error *) true}
+            inputInt32() : int32 {
+                (* read one integer from stdin, exit with error message in case of error *) 0}
+        })"";
+    fwrite(objectVsopContent, 1, strlen(objectVsopContent), tempFile);
+    fclose(tempFile);
+
+    // Reopen the temporary file as the input file
+    yyin = fopen(tempFileName.c_str(), "r");
     if (!yyin) {
-        std::cerr << "Error: Can't Open File " << argv[2] << std::endl;
+        std::cerr << "Error: Can't open temporary file " << tempFileName << std::endl;
         return 1;
     }
 
     // Process based on the mode argument (-p, -l, or -c)
-    if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "-p") == 0) {
+    if (strcmp(argv[1], "-l") == 0) {
+
+        yyin = fopen(argv[2], "r");
+        if (!yyin) {
+            std::cerr << "Error: Can't open temporary file " << tempFileName << std::endl;
+            return 1;
+        }
+
+        // Lexical analysis mode only
+        lexer_debug_mode = true;
+        int token;
+        while ((token = yylex()) != 0) { } // No need to print anything, printing is done during lexing
+    }
+    else if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "-p") == 0) {
+        yyin = fopen(tempFileName.c_str(), "r");
+        if (!yyin) {
+            std::cerr << "Error: Can't open temporary file " << tempFileName << std::endl;
+            return 1;
+        }
         lexer_debug_mode = false;
         int token;
         
@@ -539,7 +595,6 @@ int main(int argc, char **argv) {
                 exit(1);
             }
         }
-        
         // Second pass: syntactic analysis
         yycolumn = 1; yyline = 1;
         rewind(yyin);
@@ -565,15 +620,18 @@ int main(int argc, char **argv) {
                 // }
 
                 if (strcmp(argv[1], "-c") == 0) {
+
+                    // add 
                     SemanticAnalyzer* analyzer = new SemanticAnalyzer(std::string(fileName));
                     analyzer->analyze(static_cast<Program*>(root.get()));
+                    // std::cout << "analyzer->isAccepted : "<< analyzer->isAccepted << std::endl;
                     
-                    if (analyzer->isAccepted)
+                    if (analyzer->isAccepted == true)
                         std::cout << root->toString2() << std::endl;
                     else
                         return EXIT_FAILURE;
                 } else if (strcmp(argv[1], "-p") == 0) {
-                    std::cout << root->toString2() << std::endl;
+                    std::cout << root->toString() << std::endl;
                 }
             } else {
                 std::cerr << "Error: AST is empty!" << std::endl;
@@ -583,12 +641,8 @@ int main(int argc, char **argv) {
             std::cerr << "Parsing Error!" << std::endl;
             return EXIT_FAILURE;
         }
-    } else if (strcmp(argv[1], "-l") == 0) {
-        // Lexical analysis mode only
-        lexer_debug_mode = true;
-        int token;
-        while ((token = yylex()) != 0) { } // No need to print anything, printing is done during lexing
-    } else {
+    }
+    else {
         std::cerr << "Invalid Option: " << argv[1] << "\nUsage: " << argv[0] 
                   << " -l|-p|-c <source_code_file>\n";  
     }

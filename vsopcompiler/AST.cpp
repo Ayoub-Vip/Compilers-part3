@@ -136,7 +136,7 @@ std::string BinaryOperation::toString() const {
 }
 
 std::string BinaryOperation::toString2() const {
-   return "BinOp(" + op +", " + left->toString2() + ", " + right->toString2() + ")";
+   return "BinOp(" + op +", " + left->toString2() + ", " + right->toString2() + ") : " + type.toString();
 }
 /*====================================================================== */
 
@@ -153,6 +153,13 @@ Conditional::Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> 
 */
 std::string Conditional::toString() const {
    return "If(" + cond_expr->toString() + ", " + then_expr->toString() + (else_expr ? ", " + else_expr->toString() : "") + ")";
+}
+
+std::string Conditional::toString2() const {
+   return "If(" + cond_expr->toString2() + ", " 
+         + then_expr->toString2() 
+         + (else_expr ? ", " + else_expr->toString2() : "") 
+         + ") : " + type.toString();
 }
 
 /**
@@ -193,6 +200,10 @@ std::string WhileLoop::toString() const {
    return "While(" + cond_expr->toString() + ", " + body_expr->toString() + ")";
 }
 
+std::string WhileLoop::toString2() const {
+   return "While(" + cond_expr->toString2() + ", " + body_expr->toString2() + ") : " + type.toString();
+}
+
 /**
 * Returns a pointer to the condition expression
 */
@@ -229,7 +240,7 @@ Type Formal::getType() const { return type; }
 * Returns a string representation of the formal parameter
 */
 std::string Formal::toString() const {
-   return name;
+   return name + " : " + type.toString() ;
 }
 std::string Formal::toString2() const {
    return name + " : " + type.toString() ;
@@ -285,6 +296,31 @@ std::string Block::toString() const {
        
    }
    result += "]";
+   return result;
+}
+
+std::string Block::toString2() const {
+   std::string result;
+   if (exprs.size() > 0)
+       result = "\n\t[";
+   else
+       result = "[";    
+   
+   int E_size = exprs.size();
+   int cpt = 0;
+
+   for (const auto& expr : exprs) {
+       if (expr) {
+           result += expr->toString2();
+           cpt++;
+       } else {
+           result += "null";
+       }
+       if (E_size - cpt > 0)
+           result += ", ";
+       
+   }
+   result += "] : " + type.toString();
    return result;
 }
 
@@ -360,8 +396,17 @@ Let::Let(std::string n, Type t, unsigned int column, unsigned int line, std::uni
 * Returns a string representation of the let expression
 */
 std::string Let::toString() const {
-   return init_expr ? "Let(" + name + ", " + type.toString() + ", " + init_expr->toString() + ", " + scope_expr->toString() + ")"
-                    : "Let(" + name + ", " + type.toString() + ", " + scope_expr->toString() + ")";
+   return init_expr ?
+   "Let(" + name + ", " + type.toString() + ", " + init_expr->toString() + ", " + scope_expr->toString() + ")"
+   :
+   "Let(" + name + ", " + type.toString() + ", " + scope_expr->toString() + ")";
+}
+
+std::string Let::toString2() const {
+   return init_expr ? 
+   "Let(" + name + ", " + type.toString2() + ", " + init_expr->toString2() + ", " + scope_expr->toString2() + "): " + type.toString()
+   :
+   "Let(" + name + ", " + type.toString() + ", " + scope_expr->toString2() + ") : " + type.toString();
 }
 
 /**
@@ -421,6 +466,9 @@ Expr* Assign::getExpr() const{
 std::string Assign::toString() const {
    return "Assign(" + name + ", " + expr->toString() + ")";
 }
+std::string Assign::toString2() const {
+   return "Assign(" + name + ", " + expr->toString2() + ") : " + type.toString();
+}
 /* ================================================================================== */
 
 /* ==========================   UnOp      =========================================== */
@@ -437,7 +485,7 @@ std::string UnOp::toString() const {
 }
 
 std::string UnOp::toString2() const {
-   return "UnOp(" + op + ", " + expr->toString2() + ")"; 
+   return "UnOp(" + op + ", " + expr->toString2() + ") : " + type.toString(); 
 }
 
 /**
@@ -486,6 +534,16 @@ std::string Call::toString() const {
    return result;
 }
 
+std::string Call::toString2() const {
+   std::string result = "Call(" + exprobject_ident->toString2() + ", " + method_name + ", [";
+   for (size_t i = 0; i < args.size(); ++i) {
+       result += args[i]->toString2();
+       if (i != args.size() - 1) result += ", ";
+   }
+   result += "]) : " + type.toString();
+   return result;
+}
+
 std::string Call::getClassName() const {
    return exprobject_ident->getTypeName();
 }
@@ -527,7 +585,7 @@ std::string ObjectIdentifier::getName() const {
 /**
 * Self - Represents the "self" keyword
 */
-Self::Self(std::string n) : Expr(std::move(n)), name_self(std::move(n)) {}
+Self::Self(std::string n) : Expr(Type(std::move(n))), name_self(std::move(n)) {}
 
 /**
 * Returns a string representation of self
@@ -535,18 +593,25 @@ Self::Self(std::string n) : Expr(std::move(n)), name_self(std::move(n)) {}
 std::string Self::toString() const {
    return name_self;
 }
+
+std::string Self::toString2() const {
+   return name_self + " : " + getTypeName();
+}
 /*================================================================================= */
 /* =============================  Parenthesis ====================================== */
 /**
 * Parenthesis - Represents an empty pair of parentheses
 */
-Parenthesis::Parenthesis() {}
+Parenthesis::Parenthesis() : Expr(Type("unit")) {}
 
 /**
 * Returns a string representation of the parentheses
 */
 std::string Parenthesis::toString() const {
    return "()";
+}
+std::string Parenthesis::toString2() const {
+   return "() : " + getTypeName();
 }
 /*================================================================================= */
 
@@ -586,7 +651,10 @@ std::string FieldNode::toString() const {
    return init_expr ? "Field(" + name + ", " + type.toString() + ", " + init_expr->toString() + ")"
                     : "Field(" + name + ", " + type.toString() + ")";
 }
-
+std::string FieldNode::toString2() const {
+   return init_expr ? "Field(" + name + ", " + type.toString() + ", " + init_expr->toString2() + ")"
+                    : "Field(" + name + ", " + type.toString() + ")";
+}
 /**
 * Returns the field name
 */
@@ -671,7 +739,12 @@ std::string ClassNode::toString2() const {
 * Constructor for ClassNode
 */
 ClassNode::ClassNode(std::string n, std::string p, std::vector<std::unique_ptr<FieldNode>>* f, std::vector<std::unique_ptr<MethodNode>>* m)
-   : ASTNode(), name(n), parent(p) {
+   : ASTNode(), name(n) {
+      if (p != n)
+             parent = p;
+          else
+             parent = "NULL_PARENT";
+       // std::cout << "INFO: parent : " << parent << std::endl;
        if (!f) {
            // std::cout << "WARNING: f est NULL, initialisation de fields avec un vector vide." << std::endl;
            fields = std::vector<std::unique_ptr<FieldNode>>();
@@ -693,7 +766,11 @@ ClassNode::ClassNode(std::string n, std::string p,
                      std::vector<std::unique_ptr<MethodNode>>* m,
                      unsigned int column, unsigned int line
                   )
-   : ASTNode(column, line), name(n), parent(p) {
+   : ASTNode(column, line), name(n){
+      if (p != n)
+         parent = p;
+      else
+         parent = "NULL_PARENT";
        if (!f) {
            // std::cout << "WARNING: f est NULL, initialisation de fields avec un vector vide." << std::endl;
            fields = std::vector<std::unique_ptr<FieldNode>>();
@@ -776,12 +853,13 @@ std::vector<std::unique_ptr<ClassNode>>& Program::getClasses(){
 * Returns a string representation of the entire program
 */
 std::string Program::toString() const {
-   int cpt = 0;
+   int cpt = 1;
    int C_size = classes.size();
    std::string str = "[";
    for (const auto& cls : classes)
    {
        cpt++;
+       if (cls->name == "Object") continue;
        str += cls->toString();
        if (C_size - cpt > 0) str += ", \n";
        
@@ -791,12 +869,13 @@ std::string Program::toString() const {
 }
 
 std::string Program::toString2() const {
-   int cpt = 0;
+   int cpt = 1;
    int C_size = classes.size();
    std::string str = "[";
    for (const auto& cls : classes)
    {
        cpt++;
+       if (cls->name == "Object") continue;
        str += cls->toString2();
        if (C_size - cpt > 0) str += ", \n";
        
