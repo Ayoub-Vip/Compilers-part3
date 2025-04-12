@@ -280,8 +280,7 @@ expr:
     IF expr THEN expr {
         $$ = static_cast<Expr*>(new Conditional(
             std::unique_ptr<Expr>(static_cast<Expr*>($2)),
-            std::unique_ptr<Expr>(static_cast<Expr*>($4)),
-            nullptr
+            std::unique_ptr<Expr>(static_cast<Expr*>($4))
         ));
     }
     /* If-then-else construct */
@@ -326,7 +325,8 @@ expr:
     | LET OBJECT_IDENTIFIER COLON type IN expr {
         $$ = static_cast<Expr*>(new Let(
             std::string($2.str), 
-            Type($4), 
+            Type($4),
+            $2.column, $2.line,
             nullptr, 
             std::unique_ptr<Expr>(static_cast<Expr*>($6))
         ));

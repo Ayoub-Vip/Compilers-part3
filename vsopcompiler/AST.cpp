@@ -146,19 +146,22 @@ std::string BinaryOperation::toString2() const {
 * Conditional - Represents an if-then-else expression
 */
 Conditional::Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr, std::unique_ptr<Expr> else_expr)
-   : cond_expr(std::move(cond_expr)), then_expr(std::move(then_expr)), else_expr(std::move(else_expr)) {}
+   : cond_expr(std::move(cond_expr)), then_expr(std::move(then_expr)), else_expr(std::move(else_expr)), has_else(true) {}
+
+Conditional::Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr)
+   : cond_expr(std::move(cond_expr)), then_expr(std::move(then_expr)), else_expr(new Parenthesis()) {}
 
 /**
 * Returns a string representation of the conditional expression in the AST
 */
 std::string Conditional::toString() const {
-   return "If(" + cond_expr->toString() + ", " + then_expr->toString() + (else_expr ? ", " + else_expr->toString() : "") + ")";
+   return "If(" + cond_expr->toString() + ", " + then_expr->toString() + (has_else ? ", " + else_expr->toString() : "") + ")";
 }
 
 std::string Conditional::toString2() const {
    return "If(" + cond_expr->toString2() + ", " 
          + then_expr->toString2() 
-         + (else_expr ? ", " + else_expr->toString2() : "") 
+         + (has_else ? ", " + else_expr->toString2() : "") 
          + ") : " + type.toString();
 }
 
@@ -404,9 +407,9 @@ std::string Let::toString() const {
 
 std::string Let::toString2() const {
    return init_expr ? 
-   "Let(" + name + ", " + type.toString2() + ", " + init_expr->toString2() + ", " + scope_expr->toString2() + "): " + type.toString()
+   "Let(" + name + ", " + type.toString2() + ", " + init_expr->toString2() + ", " + scope_expr->toString2() + ") : " + getTypeName()
    :
-   "Let(" + name + ", " + type.toString() + ", " + scope_expr->toString2() + ") : " + type.toString();
+   "Let(" + name + ", " + type.toString() + ", " + scope_expr->toString2() + ") : " + getTypeName() ;
 }
 
 /**

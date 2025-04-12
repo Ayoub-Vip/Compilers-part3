@@ -161,7 +161,8 @@ class BinaryOperation : public Expr {
  */
 class Conditional : public Expr {
     public:
-        Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr, std::unique_ptr<Expr> else_expr = nullptr);
+        Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr, std::unique_ptr<Expr> else_expr );
+        Conditional(std::unique_ptr<Expr> cond_expr, std::unique_ptr<Expr> then_expr);
         std::string toString() const override;
         std::string toString2() const override;
 
@@ -173,6 +174,7 @@ class Conditional : public Expr {
         std::unique_ptr<Expr> cond_expr; /**< Pointer to the condition expression. */
         std::unique_ptr<Expr> then_expr; /**< Pointer to the 'then' expression. */
         std::unique_ptr<Expr> else_expr; /**< Pointer to the 'else' expression. */
+        bool has_else = false; /**< Flag indicating if there is an 'else' expression. for Printing reasons */
 };
 /*====================================================================== */
 

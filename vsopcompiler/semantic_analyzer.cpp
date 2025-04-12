@@ -140,36 +140,59 @@ private:
         // std::cout << "Checking class: " << cls->name << std::endl;
 
         ///// check fields ................................................ Done
+        std::unordered_map<std::string, bool> fieldNames;
+
         for (auto& field : cls->getFields()) {
             if (!field) {
-                reportSemanticError("Null field in class :   " + cls->name);
-                continue;
+            reportSemanticError("Null field in class : " + cls->name, cls->getColumn(), cls->getLine());
+            continue;
             }
-            // check cannot redfine its parent fields(no different type) .. Done
+
+            // Check if the field is redefined more than once
+            if (fieldNames.count(field->getName())) {
+            reportSemanticError("Field '" + field->getName() + "' is redefined multiple times in class '" + cls->name + "'.", field->getColumn(), field->getLine());
+            continue;
+            }
+            fieldNames[field->getName()] = true;
+
+            // Check cannot redefine its ancestor fields (no different type)
             if (cls->parent != "NULL_PARENT") {
-                const auto& pcls = classMap[cls->parent];
-                for (auto& pfield : pcls->getFields()){
-                    if (pfield->getName() == field->getName() && pfield->getTypeName() != field->getTypeName())
-                        reportSemanticError("the inhireted field '" + pfield->getName() + "' of type '" + pfield->getTypeName() + "' cannot be redefined with different type '" + field->getTypeName() +"' in the child class");                    
+                std::string currentAncestor = cls->parent;
+                while (!currentAncestor.empty() && currentAncestor != "NULL_PARENT") {
+                    const auto& ancestorClass = classMap[currentAncestor];
+                    for (auto& ancestorField : ancestorClass->getFields()) {
+                        if (ancestorField->getName() == field->getName()) {
+                            reportSemanticError("The inherited field '" + ancestorField->getName() + "' of type '" + ancestorField->getTypeName() + "' in position (" + std::to_string(ancestorField->getLine()) +":"+std::to_string(ancestorField->getColumn())+") from the superior class '"+ancestorClass->name+"' cannot be redefined with a different type '" + field->getTypeName() + "' in the child class'"+cls->name+"'", field->getColumn(), field->getLine());
+                        }
+                    }
+                    currentAncestor = ancestorClass->parent;
                 }
             }
 
             symb_tab.declare(field->getName(), field->getTypeName());
 
-            // check if the type  exists   ................................ Done
+            // Check if the type exists
             checkField(field.get());
         }
 
         
         // std::cout << "start the checking of Methods\n";
+        std::unordered_map<std::string, bool> methodNames;
+
         for (auto& method : cls->getMethods()) {
-            //  must have parent class same methods args and return ....... //TODO check ancestors not only parent
+            // Check if the method is redefined more than once
+            if (methodNames.count(method->getName())) {
+            reportSemanticError("Method '" + method->getName() + "' is redefined multiple times in class '" + cls->name + "'.", method->getColumn(), method->getLine());
+            continue;
+            }
+            methodNames[method->getName()] = true;
+
+            // Must have parent class same methods args and return ....... //TODO check ancestors not only parent
             if (cls->parent != "NULL_PARENT") {
-                compareMethodsSignature(cls, classMap[cls->parent]);
+            compareMethodsSignature(cls, classMap[cls->parent]);
             }
 
             checkMethod(method.get());
-
         }
         symb_tab.enterScope();
     }
@@ -179,16 +202,23 @@ private:
         // check if the type is existing, ................................. Done
         // ex: { field : classA}, classA must be declared
         std::string ftype = field->getTypeName();
-        std::string initExprtype = "unit";
-
+        
         if(field->getInitExpr()){
+            std::string initExprtype;
             checkExpression(field->getInitExpr().get());
+
             initExprtype = field->getInitExpr()->getTypeName();
+            
+            // Add verification if initExprtype is not a subclass of ftype if the type is a class and not a primitive type
+            if (classMap.count(ftype) != 0) { // Check if ftype is a class
+                if (getMostCommonAncestor(ftype, initExprtype) != ftype) {
+                    reportSemanticError("Field '" + field->getName() + "' type '" + ftype + "' does not match the initializer type '" + initExprtype + "', the initializer type must be a subclass of the field type.", field->getColumn(), field->getLine());
+                }
+            } else if (ftype != initExprtype) { // Primitive types, compare directly
+                reportSemanticError("Field '" + field->getName() + "' type '" + ftype + "' does not match the initializer type '" + initExprtype + "'", field->getColumn(), field->getLine());
+            }
+            // std::cout << "Field name: " << field->getName() << ", Field type: " << ftype << std::endl;
         }
-        if (ftype != initExprtype) {
-            reportSemanticError("Field '" + field->getName() + "' type '" + ftype + "' does not match the initializer type '" + initExprtype + "'", field->getColumn(), field->getLine());
-        }
-        // std::cout << "Field name: " << field->getName() << ", Field type: " << ftype << std::endl;
 
         for (const std::string& s : {"int32", "bool", "string", "unit"}) {
             if (s == ftype)
@@ -204,34 +234,35 @@ private:
     void compareMethodsSignature(ClassNode* child, ClassNode* parent){
         // std::cout << "start the checking of signature of Methods\n";
 
-        for (auto& pmethod : parent->getMethods()) {
+        ClassNode* currentAncestor = parent;
+        while (currentAncestor) {
+            for (auto& pmethod : currentAncestor->getMethods()) {
             for (auto& cmethod : child->getMethods()) {
 
-                if(pmethod->getName() == cmethod->getName()) {
-                    if (cmethod->getReturnType().getName() != pmethod->getReturnType().getName()){
-                        reportSemanticError("parent class method return type is not the same as the child return type");
-                        
+                if (pmethod->getName() == cmethod->getName()) {
+                if (cmethod->getReturnType().getName() != pmethod->getReturnType().getName()) {
+                    reportSemanticError("Ancestor class method in position ("+std::to_string(pmethod->getLine())+":"+std::to_string(pmethod->getColumn())+") return type is not the same as the child return type", cmethod->getColumn(), cmethod->getLine());
+                }
+                if (cmethod->getFormals().size() != pmethod->getFormals().size()) {
+                    reportSemanticError("Ancestor class method signature in position ("+std::to_string(pmethod->getLine())+":"+std::to_string(pmethod->getColumn())+") is not the same as the child signature", cmethod->getColumn(), cmethod->getLine());
+                    return;
+                }
+
+                for (size_t i = 0; i < cmethod->getFormals().size(); ++i) {
+                    if (cmethod->getFormals()[i]->getName() != pmethod->getFormals()[i]->getName()) {
+                    reportSemanticError("Ancestor class method signature in position ("+std::to_string(pmethod->getLine())+":"+std::to_string(pmethod->getColumn())+") names are not the same as the child", cmethod->getColumn(), cmethod->getLine());
                     }
-                    if (cmethod->getFormals().size() != pmethod->getFormals().size()) {
-                        reportSemanticError("parent class method signature is not the same as the child signature");
-                        return;
-                    }
-                    // std::cout << "CMethod name: " << cmethod->getName() << ", CMethod type: " << cmethod->getReturnType().getName() << std::endl;
-                    
-                    for (size_t i = 0; i < cmethod->getFormals().size(); ++i) {
-                        if (cmethod->getFormals()[i]->getName() == pmethod->getFormals()[i]->getName()) {
-                            continue;
-                        } else {
-                            reportSemanticError("parent class method signature names is not the same as the child");
-                        }
-                        if (cmethod->getFormals()[i]->getTypeName() == cmethod->getFormals()[i]->getTypeName()) {
-                            continue;
-                        } else {
-                            reportSemanticError("parent class method signature type is not the same as the child");
-                        }
+                    if (cmethod->getFormals()[i]->getTypeName() != pmethod->getFormals()[i]->getTypeName()) {
+                    reportSemanticError("Ancestor class method signature type in position ("+std::to_string(pmethod->getLine())+":"+std::to_string(pmethod->getColumn())+")is not the same as the child", cmethod->getColumn(), cmethod->getLine());
                     }
                 }
+                }
             }
+            }
+            if (currentAncestor->parent.empty() || currentAncestor->parent == "NULL_PARENT") {
+            break;
+            }
+            currentAncestor = classMap[currentAncestor->parent];
         }
     }
 
@@ -246,22 +277,29 @@ private:
         for (auto& formal : method->getFormals()) {
             std::string fname = formal->getName();
             std::string ftype = formal->getType().getName();
-            // reportSemanticError("the method " + method->getName() + " several fname'" + fname +"'");
 
-            if(visitedFromalName.count(fname) == 0){
-                
-                visitedFromalName[fname] = true;
-                // Declare forals in the current scope
-                symb_tab.declare(fname, ftype);  //TODO what if a formal is already in the previous (class field) scope with  different type??
+            // Check if the type of the formal exists or is a primitive type
+            if (!isInArray(ftype, {"int32", "bool", "string", "unit"}) && classMap.count(ftype) == 0) {
+            reportSemanticError("The type '" + ftype + "' of formal parameter '" + fname + "' in method '" + method->getName() + "' does not exist.", formal->getColumn(), formal->getLine());
+            continue;
             }
-            else {
-                reportSemanticError("the method " + method->getName() + " has several formals with the same name'" + fname +"'");
+
+            if (visitedFromalName.count(fname) == 0) {
+            visitedFromalName[fname] = true;
+            // Declare formals in the current scope
+            symb_tab.declare(fname, ftype);  // TODO: what if a formal is already in the previous (class field) scope with a different type?
+            } else {
+            reportSemanticError("The method '" + method->getName() + "' has several formals with the same name '" + fname + "'.", formal->getColumn(), formal->getLine());
             }
         }
         
         checkExpression(method->getBlock());
-        if (method->getReturnType().getName() != method->getBlock()->getTypeName()) {
-            reportSemanticError("Method '" + method->getName() + "' return type'" + method->getReturnType().getName() +"' does not match the block return type'" +method->getBlock()->getTypeName()+"'", method->getColumn(), method->getLine());
+        if (classMap.count(method->getReturnType().getName()) != 0) { // Check if the return type is a class
+            if (getMostCommonAncestor(method->getReturnType().getName(), method->getBlock()->getTypeName()) != method->getReturnType().getName()) {
+            reportSemanticError("Method '" + method->getName() + "' return type '" + method->getReturnType().getName() + "' must be at least a superclass of the block return type '" + method->getBlock()->getTypeName() + "'", method->getColumn(), method->getLine());
+            }
+        } else if (method->getReturnType().getName() != method->getBlock()->getTypeName()) { // Primitive types, compare directly
+            reportSemanticError("Method '" + method->getName() + "' return type '" + method->getReturnType().getName() + "' does not match the block return type '" + method->getBlock()->getTypeName() + "'", method->getColumn(), method->getLine());
         }
 
         symb_tab.exitScope();
@@ -312,9 +350,15 @@ private:
             std::string left_type = binOp->getLeft()->getTypeName();
             std::string right_type = binOp->getRight()->getTypeName();
 
-            if (op == "=" or op == "<" or op == "<=") {
+            if (op == "<" or op == "<=") {
                 if (left_type != "int32" || right_type != "int32") {
                     reportSemanticError("Binary operation requires int32 operands, but found "+op+"("+ left_type +","+right_type+")");
+                }
+                binOp->setTypeByName("bool");
+            }
+            else if (op == "=") {
+                if (left_type != right_type) {
+                    reportSemanticError("Binary operation requires operands of the same  type, but found "+op+"("+ left_type +","+right_type+")");
                 }
                 binOp->setTypeByName("bool");
             }
@@ -352,9 +396,11 @@ private:
 
                 if (then_type == "unit" || else_type == "unit"){
                     cond->setTypeByName("unit");
-                }else if (classMap.count(then_type)){
+                    return;
+                }else if (classMap.count(then_type) && classMap.count(else_type)) {
                     std::string first_ancestor = getMostCommonAncestor(then_type, else_type);
                     cond->setTypeByName(first_ancestor);
+                    return;
                 }else if (then_type != else_type) {
                     reportSemanticError("semantic error: then and else branches must be of the same return types.");
                 }
@@ -477,11 +523,22 @@ private:
                 + "' before assignment.");
             }
             // verify if the type of expression matches the variable type ... Done
-            if (symb_tab.lookup(assign->getName()) != assign->getExpr()->getTypeName())
+            std::string varType = symb_tab.lookup(assign->getName());
+            std::string exprType = assign->getExpr()->getTypeName();
+
+            if (classMap.count(varType) != 0) { // Check if the variable type is a class
+                if (getMostCommonAncestor(varType, exprType) != varType) {
+                    reportSemanticError("You cannot assign a type '"
+                    + exprType 
+                    + "' to variable '"+ assign->getName()
+                    + "' of original type '" + varType + "', the assigned type must be a subclass of the variable type.", assign->getColumn(), assign->getLine());
+                }
+            } else if (varType != exprType) { // Primitive types, compare directly
                 reportSemanticError("You cannot assign a different type '"
-                + assign->getExpr()->getTypeName() 
+                + exprType 
                 + "' to variable '"+ assign->getName()
-                + "' of original type '" + symb_tab.lookup(assign->getName()), assign->getColumn(), assign->getLine());
+                + "' of original type '" + varType + "'.", assign->getColumn(), assign->getLine());
+            }
 
             assign->setTypeByName(assign->getExpr()->getTypeName());
 
@@ -528,6 +585,10 @@ private:
         //TODO see vsop manual for let .. in
         else if (auto let = dynamic_cast<Let*>(expr)) {
 
+            if(!isInArray(let->getType().getName(), {"int32", "bool", "string", "unit"}) 
+            && classMap.count(let->getType().getName()) == 0){
+                reportSemanticError("the type of let must be one of the following types: int32, bool, string, unit or a declared class.", let->getColumn(), let->getLine());
+            }
             //TODO determine in which on the scope
             symb_tab.declare(let->getName(), let->getType().getName());
             checkExpression(let->getScopeExpr());
